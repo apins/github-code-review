@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "GitHub code review",
     "description": "Born to superoid the GitHub functionality (starting from pull requests, code review)",
-    "version": "1.1.0",
+    "version": "1.2.0",
     
     "browser_action": {
         "default_icon": "icon.png",
@@ -11,11 +11,11 @@
     "content_scripts": [
         {
             "matches": ["https://github.com/*"],
-            "js": ["sha256.js", "content.js"]
+            "js": ["lib/sha256.js", "content.js"]
         }
     ],
     "background": {
-        "scripts": ["background.js"],
+        "scripts": ["lib/jquery-3.1.1.min.js", "background.js"],
         "persistent": true
     },
     "permissions": [
