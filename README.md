@@ -1,7 +1,7 @@
 GitHub code review
 =
 
-Google Chrome extension to simplify core review of pull requests at GitHub
+Google Chrome extension to simplify code review of pull requests at GitHub
 -
 
 **Functionality:**
