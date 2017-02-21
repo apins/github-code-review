@@ -1,8 +1,5 @@
 var url_matches = window.location.pathname.match(/^\/(.*\/.*)\/.*\/(\d+)\/files/i);
 
-var hhh = new Sha256('abc');
-console.log(hhh);
-
 if (chrome && chrome.runtime && url_matches) {
 	var initialized = false;
 	var is_config_protected = false;
@@ -169,5 +166,5 @@ if (chrome && chrome.runtime && url_matches) {
 
 	window.setInterval(function () {
 		getConfig();
-	}, 500);
+	}, 1000);
 }
