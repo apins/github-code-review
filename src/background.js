@@ -65,32 +65,26 @@ chrome.storage.local.get(null, function (data) {
 					});
 				});
 
-				if (requests.length > 0) {
-					function processPullRequest(request) {
-						if ( ! request) {
-							finalizeWipe();
-							return;
-						}
-
-						// @todo: switch to sync!
-						$.get(
-							'https://api.github.com/repos/'+request.repo_full_name+'/pulls/'+request.pull_request_id,
-							{access_token: message.data.access_token},
-							function (data) {
-								if ( !! data.state && data.state != 'open') {
-									delete config[request.repo_full_name][request.pull_request_id];
-								}
-								
-								processPullRequest(requests.pop());
-							}
-						);
+				function processPullRequest(request) {
+					if ( ! request) {
+						finalizeWipe();
+						return;
 					}
 
-					processPullRequest(requests.pop());
+					// @todo: switch to sync!
+					$.get(
+						'https://api.github.com/repos/'+request.repo_full_name+'/pulls/'+request.pull_request_id,
+						{access_token: message.data.access_token},
+						function (data) {
+							if ( !! data.state && data.state != 'open') {
+								delete config[request.repo_full_name][request.pull_request_id];
+							}
+
+							processPullRequest(requests.pop());
+						}
+					);
 				}
-				else {
-					finalizeWipe();
-				}
+				processPullRequest(requests.pop());
 
 				function finalizeWipe() {
 					Object.keys(config).forEach(function (repo_full_name) {
