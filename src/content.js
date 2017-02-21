@@ -38,8 +38,16 @@ if (chrome && chrome.runtime && url_matches) {
 
 	function isApproved(fileBlock) {
 		var fileHeader = fileBlock.querySelector('.file-header');
-		var fileContents = fileBlock.querySelector('.js-file-content');
-		var version_hash = Sha256.hash(fileContents.innerHTML);
+		var version_hash;
+
+		if ( ! fileHeader.dataset.versionHash) {
+			var fileContents = fileBlock.querySelector('.js-file-content');
+			version_hash = Sha256.hash(fileContents.innerHTML);
+			fileHeader.dataset.versionHash = version_hash;
+		}
+		else {
+			version_hash = fileHeader.dataset.versionHash;
+		}
 
 		return fileHeader.dataset.path && !! config[fileHeader.dataset.path] && (config[fileHeader.dataset.path] == version_hash);
 	}
@@ -56,10 +64,18 @@ if (chrome && chrome.runtime && url_matches) {
 
 	function approveFileRevision(fileBlock) {
 		var fileHeader = fileBlock.querySelector('.file-header');
-		var fileContents = fileBlock.querySelector('.js-file-content');
-		var version_hash = Sha256.hash(fileContents.innerHTML);
 		var disapproveButton = createDisapproveButton(fileBlock);
 		var approveButton = fileHeader.querySelector('.js-approve-file');
+		var version_hash;
+
+		if ( ! fileHeader.dataset.versionHash) {
+			var fileContents = fileBlock.querySelector('.js-file-content');
+			version_hash = Sha256.hash(fileContents.innerHTML);
+			fileHeader.dataset.versionHash = version_hash;
+		}
+		else {
+			version_hash = fileHeader.dataset.versionHash;
+		}
 
 		protectConfig();
 		config[fileHeader.dataset.path] = version_hash;
@@ -86,9 +102,17 @@ if (chrome && chrome.runtime && url_matches) {
 
 	function createApproveButton(fileBlock) {
 		var fileHeader = fileBlock.querySelector('.file-header');
-		var fileContents = fileBlock.querySelector('.js-file-content');
-		var version_hash = Sha256.hash(fileContents.innerHTML);
 		var approveButton = document.createElement('a');
+		var version_hash;
+
+		if ( ! fileHeader.dataset.versionHash) {
+			var fileContents = fileBlock.querySelector('.js-file-content');
+			version_hash = Sha256.hash(fileContents.innerHTML);
+			fileHeader.dataset.versionHash = version_hash;
+		}
+		else {
+			version_hash = fileHeader.dataset.versionHash;
+		}
 
 		approveButton.className = 'btn btn-sm btn-outline js-approve-file';
 		approveButton.rel = 'nofollow';
