@@ -1,7 +1,7 @@
-Octo-Superoider
+GitHub code review
 =
 
-GitHub Code-Review Helper Tool (Google Chrome add-on)
+Google Chrome extension to simplify core review of pull requests at GitHub
 -
 
 **Functionality:**
