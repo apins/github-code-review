@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+ This page is shown when the extension button is clicked, because the
+ "browser_action" field in manifest.json contains the "default_popup" key with
+ value "popup.html".
+ -->
+<html>
+<head>
+    <title>Getting Started Extension's Popup</title>
+    <style>
+        body {
+            font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
+            font-size: 100%;
+        }
+
+        #wrapper {
+            margin: 10px;
+        }
+        #config_container {
+            width: 400px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="wrapper">
+    <div>
+        <textarea id="config_container" rows="20"></textarea>
+    </div>
+    <div>
+        <button class="js-apply-config">Apply config</button>
+    </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
