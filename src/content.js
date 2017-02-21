@@ -141,12 +141,11 @@ if (chrome && chrome.runtime && url_matches) {
 				}
 			}
 
-			var viewButton = fileHeader.querySelector('.file-actions').querySelector('.btn');
 			var actionButton = is_approved
 				? createDisapproveButton(fileBlock)
 				: createApproveButton(fileBlock);
 
-			fileHeader.querySelector('.file-actions').insertBefore(actionButton, viewButton);
+			fileHeader.querySelector('.file-actions').appendChild(actionButton);
 			fileHeader.dataset.codeReviewToolApplied = true;
 
 			if (is_approved) {

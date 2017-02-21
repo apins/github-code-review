@@ -10,7 +10,6 @@
     "content_scripts": [
         {
             "matches": ["https://github.com/*"],
-            "css": ["styles.css"],
             "js": ["content.js", "popup.js"]
         }
     ],
