@@ -1,4 +1,6 @@
 chrome.storage.local.get(null, function (data) {
+	// @todo: rename `data` to `settings` and `config` to `approvedFiles`
+
 	var config = data ? ( !! data.config ? data.config : data) : {};
 	var access_token = data ? ( !! data.access_token ? data.access_token : '') : '';
 
@@ -23,11 +25,13 @@ chrome.storage.local.get(null, function (data) {
 				sendResponse({data: requested_config});
 				break;
 
+			// @todo: merge into 'getConfig' with ` !! message.repository` condition
 			case 'getFullConfig':
 				sendResponse({data: config});
 				break;
 
 			case 'setFullConfig':
+				// @todo: sub-property of `data` should be used instead: `message.data.config`
 				config = message.data;
 				saveStorage();
 				break;
