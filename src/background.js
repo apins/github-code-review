@@ -106,10 +106,13 @@ chrome.storage.local.get(null, function (data) {
 					dataType: 'json',
 					async: false,
 					success: function (data) {
-						console.log(data);
 						sendResponse({data: {changed_files_count: data.changed_files}});
 					}
 				});
+				break;
+
+			case 'getApiToken':
+				sendResponse({data: {access_token: access_token}});
 				break;
 
 			default:

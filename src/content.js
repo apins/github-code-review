@@ -23,9 +23,8 @@ if (chrome && chrome.runtime) {
 
 				Array.prototype.forEach.call(document.querySelectorAll('.issues-listing .js-issue-row'), function (eachPullRequestBlock) {
 					var pullRequestBlock = eachPullRequestBlock;
-					var pullRequestHeader = pullRequestBlock.querySelector('.h4');
+					var pullRequestHeader = pullRequestBlock.querySelector('.opened-by');
 					var changed_files_count = pullRequestHeader.dataset.changed_files_count;
-					var counterElement = pullRequestHeader.querySelector('.js-changed-files-counter');
 					var block_pull_request_id;
 
 					var pull_request_matches = pullRequestBlock.id.match(/issue_(\d+)/i);
@@ -43,30 +42,58 @@ if (chrome && chrome.runtime) {
 					if (changed_files_count == null && ! pullRequestHeader.dataset.changed_files_count_requested) {
 						pullRequestHeader.dataset.changed_files_count_requested = true;
 
-						getPullRequestChangedFilesCount(block_pull_request_id, function (count) {
-							pullRequestHeader.dataset.changed_files_count = count;
-						});
+						window.setTimeout(function () {
+							getPullRequestChangedFilesCount(block_pull_request_id, function (count) {
+								pullRequestHeader.dataset.changed_files_count = count;
+								updatePullRequestCounter(pullRequestBlock, approved_files_count, count);
+							});
+						}, 0);
 
 						createChangedFilesCounter(pullRequestHeader);
 					}
 					else if (changed_files_count != null) {
-						if (counterElement.innerHTML != ', approved <strong>'+approved_files_count+'</strong> / '+changed_files_count) {
-							counterElement.innerHTML = ', approved <strong>'+approved_files_count+'</strong> / '+changed_files_count;
-						}
+						updatePullRequestCounter(pullRequestBlock, approved_files_count, changed_files_count);
 					}
 				});
 			}
 		}
 
+		function updatePullRequestCounter(pullRequestBlock, approved_files_count, changed_files_count) {
+			var pullRequestHeader = pullRequestBlock.querySelector('.opened-by');
+			var counterElement = pullRequestHeader.querySelector('.js-changed-files-counter');
+
+			if (approved_files_count == changed_files_count) {
+				markPullRequestReady(pullRequestBlock);
+				counterElement.innerHTML = ', all <strong>'+changed_files_count+'</strong> files passed review';
+			}
+			else {
+				unmarkPullRequestReady(pullRequestBlock);
+				if (counterElement.innerHTML != ', <strong>'+approved_files_count+'</strong> of '+changed_files_count+' files passed review') {
+					counterElement.innerHTML = ', <strong>'+approved_files_count+'</strong> of '+changed_files_count+' files passed review';
+				}
+			}
+		}
+
+		function markPullRequestReady(pullRequestBlock) {
+			pullRequestBlock.style.backgroundColor = '#dbffc2';
+			pullRequestBlock.style.borderColor = '#bee2a6';
+		}
+
+		function unmarkPullRequestReady(pullRequestBlock) {
+			pullRequestBlock.style.backgroundColor = '';
+			pullRequestBlock.style.borderColor = '';
+		}
+
 		function createChangedFilesCounter(pullRequestHeader) {
 			var counter = document.createElement('span');
-			counter.innerHTML = ', approved ...';
+			counter.innerHTML = ', ...';
 			counter.className = 'js-changed-files-counter';
 			counter.style.fontWeight = 'normal';
-			counter.style.fontSize = '11pt';
+			counter.style.fontSize = '10pt';
 			counter.style.position = 'relative';
-			counter.style.left = '-6px';
+			counter.style.left = '-5px';
 			counter.style.color = '#767676';
+			counter.style.whiteSpace = 'nowrap';
 			pullRequestHeader.appendChild(counter);
 		}
 
@@ -78,8 +105,16 @@ if (chrome && chrome.runtime) {
 			});
 		}
 
-		window.setInterval(function () { getConfig(refreshPullRequestsView); }, 500);
-		getConfig(refreshPullRequestsView);
+		function decoratePullRequests() {
+			chrome.runtime.sendMessage({command: 'getApiToken'}, function (response) {
+				if ( !! response.data && !! response.data.access_token) {
+					getConfig(refreshPullRequestsView);
+				}
+			});
+		}
+
+		window.setInterval(function () { decoratePullRequests(); }, 500);
+		decoratePullRequests();
 	}
 
 	/**
