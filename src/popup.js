@@ -37,6 +37,7 @@ $(document).ready(function () {
 		);
 	}, false);
 
+	// @todo: can be removed when $.get will become synchronous and so will be able to send here response with data
 	window.setInterval(function () { getFullConfig(); }, 100);
 	getFullConfig();
 

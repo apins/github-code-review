@@ -9,9 +9,17 @@ chrome.storage.local.get(null, function (data) {
 	chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 		switch (message.command) {
 			case 'getConfig':
-				var requested_config = config[message.repository] && config[message.repository][message.pull_request_id]
-					? config[message.repository][message.pull_request_id]
-					: {};
+				var requested_config;
+
+				if ( !! message.pull_request_id) {
+					requested_config = config[message.repository] && config[message.repository][message.pull_request_id]
+						? config[message.repository][message.pull_request_id]
+						: {};
+				}
+				else {
+					requested_config = config[message.repository] ? config[message.repository] : {};
+				}
+
 				sendResponse({data: requested_config});
 				break;
 
@@ -60,6 +68,7 @@ chrome.storage.local.get(null, function (data) {
 							return;
 						}
 
+						// @todo: switch to sync!
 						$.get(
 							'https://api.github.com/repos/'+request.repo_full_name+'/pulls/'+request.pull_request_id,
 							{access_token: message.data.access_token},
@@ -88,6 +97,19 @@ chrome.storage.local.get(null, function (data) {
 
 					saveStorage();
 				}
+				break;
+
+			case 'getChangedFilesCount':
+				$.ajax({
+					url: 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id,
+					data: {access_token: access_token},
+					dataType: 'json',
+					async: false,
+					success: function (data) {
+						console.log(data);
+						sendResponse({data: {changed_files_count: data.changed_files}});
+					}
+				});
 				break;
 
 			default:

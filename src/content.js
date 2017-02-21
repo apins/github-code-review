@@ -1,26 +1,259 @@
-var url_matches = window.location.pathname.match(/^\/(.*\/.*)\/.*\/(\d+)\/files/i);
+var pull_files_url_matches = window.location.pathname.match(/^\/(.*\/.*)\/pull\/(\d+)\/files/i);
+var pulls_url_matches = window.location.pathname.match(/^\/(.*)\/(.*)\/pulls/i);
 
-if (chrome && chrome.runtime && url_matches) {
-	var initialized = false;
-	var is_config_protected = false;
+// chrome.tabs.executeScript(null, {file: "lib/sha256.js"});
+
+if (chrome && chrome.runtime) {
+	var repository_author_and_name;
+	var pull_request_id;
 	var config = {};
+	var is_config_protected = false;
 
-	var repository_name = url_matches[1];
-	var pull_request_id = url_matches[2];
+	/**
+	 * TAB: Pull requests
+	 */
+	if (pulls_url_matches) {
+		var repository_author = pulls_url_matches[1];
+		var repository_name = pulls_url_matches[2];
+		repository_author_and_name = repository_author+'/'+repository_name;
 
-	var fileBlocks;
+		function refreshPullRequestsView(response) {
+			if ( ! is_config_protected) {
+				config = response.data;
 
-	function getConfig() {
+				Array.prototype.forEach.call(document.querySelectorAll('.issues-listing .js-issue-row'), function (eachPullRequestBlock) {
+					var pullRequestBlock = eachPullRequestBlock;
+					var pullRequestHeader = pullRequestBlock.querySelector('.h4');
+					var changed_files_count = pullRequestHeader.dataset.changed_files_count;
+					var counterElement = pullRequestHeader.querySelector('.js-changed-files-counter');
+					var block_pull_request_id;
+
+					var pull_request_matches = pullRequestBlock.id.match(/issue_(\d+)/i);
+					if (pull_request_matches) {
+						block_pull_request_id = pull_request_matches[1];
+					}
+					else {
+						return;// Must be impossible situation
+					}
+
+					var approved_files_count = !! config[block_pull_request_id]
+						? Object.keys(config[block_pull_request_id]).length
+						: 0;
+
+					if (changed_files_count == null && ! pullRequestHeader.dataset.changed_files_count_requested) {
+						pullRequestHeader.dataset.changed_files_count_requested = true;
+
+						getPullRequestChangedFilesCount(block_pull_request_id, function (count) {
+							pullRequestHeader.dataset.changed_files_count = count;
+						});
+
+						createChangedFilesCounter(pullRequestHeader);
+					}
+					else if (changed_files_count != null) {
+						if (counterElement.innerHTML != ', approved <strong>'+approved_files_count+'</strong> / '+changed_files_count) {
+							counterElement.innerHTML = ', approved <strong>'+approved_files_count+'</strong> / '+changed_files_count;
+						}
+					}
+				});
+			}
+		}
+
+		function createChangedFilesCounter(pullRequestHeader) {
+			var counter = document.createElement('span');
+			counter.innerHTML = ', approved ...';
+			counter.className = 'js-changed-files-counter';
+			counter.style.fontWeight = 'normal';
+			counter.style.fontSize = '11pt';
+			counter.style.position = 'relative';
+			counter.style.left = '-6px';
+			counter.style.color = '#767676';
+			pullRequestHeader.appendChild(counter);
+		}
+
+		function getPullRequestChangedFilesCount(pull_request_id, callback) {
+			chrome.runtime.sendMessage({command: 'getChangedFilesCount', repository: repository_author_and_name, pull_request_id: pull_request_id}, function (response) {
+				if (response && !! response.data) {
+					callback(response.data.changed_files_count);
+				}
+			});
+		}
+
+		window.setInterval(function () { getConfig(refreshPullRequestsView); }, 500);
+		getConfig(refreshPullRequestsView);
+	}
+
+	/**
+	 * TAB: Files
+	 */
+	if (pull_files_url_matches) {
+		repository_author_and_name = pull_files_url_matches[1];
+		pull_request_id = pull_files_url_matches[2];
+
+		function refreshPullFilesView(response) {
+			if ( ! is_config_protected) {
+				config = response.data;
+
+				Array.prototype.forEach.call(document.querySelectorAll('.js-file'), function (eachFileBlock) {
+					var fileBlock = eachFileBlock;
+					var fileHeader = fileBlock.querySelector('.file-header');
+					var is_approved = isFileApproved(fileBlock);
+
+					if (fileHeader.dataset.codeReviewToolApplied) {
+						var approveButton = fileHeader.querySelector('.js-approve-file');
+
+						if (
+							(approveButton == null && ! is_approved)
+							|| (approveButton != null && is_approved)
+						) {
+							var button = fileHeader.querySelector('.js-approve-file, .js-disapprove-file');
+							if ( !! button) {
+								button.remove();
+							}
+						}
+						else {
+							// All in sync, nothing to do
+							return;
+						}
+					}
+
+					var actionButton = is_approved
+						? createFileDisapproveButton(fileBlock)
+						: createFileApproveButton(fileBlock);
+
+					fileHeader.querySelector('.file-actions').appendChild(actionButton);
+					fileHeader.dataset.codeReviewToolApplied = true;
+
+					if (is_approved) {
+						hideFileContents(fileBlock);
+					}
+					else {
+						showFileContents(fileBlock);
+					}
+				});
+			}
+		}
+
+		function isFileApproved(fileBlock) {
+			var fileHeader = fileBlock.querySelector('.file-header');
+			var version_hash;
+
+			if ( ! fileHeader.dataset.versionHash) {
+				var fileContents = fileBlock.querySelector('.js-file-content');
+				version_hash = Sha256.hash(fileContents.innerText);
+				fileHeader.dataset.versionHash = version_hash;
+			}
+			else {
+				version_hash = fileHeader.dataset.versionHash;
+			}
+
+			return fileHeader.dataset.path && !! config[fileHeader.dataset.path] && (config[fileHeader.dataset.path] == version_hash);
+		}
+
+		function hideFileContents(fileBlock) {
+			var fileContents = fileBlock.querySelector('.js-file-content');
+			fileContents.style.display = 'none';
+		}
+
+		function showFileContents(fileBlock) {
+			var fileContents = fileBlock.querySelector('.js-file-content');
+			fileContents.style.display = '';
+		}
+
+		function approveFileRevision(fileBlock) {
+			var fileHeader = fileBlock.querySelector('.file-header');
+			var disapproveButton = createFileDisapproveButton(fileBlock);
+			var approveButton = fileHeader.querySelector('.js-approve-file');
+			var version_hash;
+
+			if ( ! fileHeader.dataset.versionHash) {
+				var fileContents = fileBlock.querySelector('.js-file-content');
+				version_hash = Sha256.hash(fileContents.innerText);
+				fileHeader.dataset.versionHash = version_hash;
+			}
+			else {
+				version_hash = fileHeader.dataset.versionHash;
+			}
+
+			protectConfig();
+			config[fileHeader.dataset.path] = version_hash;
+			pushConfigChanges();
+
+			// Switch buttons
+			fileHeader.querySelector('.file-actions').replaceChild(disapproveButton, approveButton);
+			hideFileContents(fileBlock);
+		}
+
+		function disapproveFileRevision(fileBlock) {
+			var fileHeader = fileBlock.querySelector('.file-header');
+			var approveButton = createFileApproveButton(fileBlock);
+			var disapproveButton = fileHeader.querySelector('.js-disapprove-file');
+
+			protectConfig();
+			delete config[fileHeader.dataset.path];
+			pushConfigChanges();
+
+			// Switch buttons
+			fileHeader.querySelector('.file-actions').replaceChild(approveButton, disapproveButton);
+			showFileContents(fileBlock);
+		}
+
+		function createFileApproveButton(fileBlock) {
+			var fileHeader = fileBlock.querySelector('.file-header');
+			var approveButton = document.createElement('a');
+			var version_hash;
+
+			if ( ! fileHeader.dataset.versionHash) {
+				var fileContents = fileBlock.querySelector('.js-file-content');
+				version_hash = Sha256.hash(fileContents.innerText);
+				fileHeader.dataset.versionHash = version_hash;
+			}
+			else {
+				version_hash = fileHeader.dataset.versionHash;
+			}
+
+			approveButton.className = 'btn btn-sm btn-outline js-approve-file';
+			approveButton.rel = 'nofollow';
+			approveButton.href = '#';
+			approveButton.innerHTML = 'Approve changes';
+
+			approveButton.addEventListener('click', function (evt) {
+				evt.preventDefault();
+				approveFileRevision(fileBlock, fileHeader.dataset.path, version_hash);
+			}, false);
+
+			return approveButton;
+		}
+
+		function createFileDisapproveButton(fileBlock) {
+			var disapproveButton = document.createElement('a');
+
+			disapproveButton.className = 'btn btn-sm btn-danger js-disapprove-file';
+			disapproveButton.rel = 'nofollow';
+			disapproveButton.href = '#';
+			disapproveButton.innerHTML = 'Disapprove changes';
+
+			disapproveButton.addEventListener('click', function (evt) {
+				evt.preventDefault();
+				disapproveFileRevision(fileBlock);
+			}, false);
+
+			return disapproveButton;
+		}
+
+		window.setInterval(function () { getConfig(refreshPullFilesView); }, 500);
+		getConfig(refreshPullFilesView);
+	}
+
+
+	/**
+	 * COMMON FUNCTIONS
+	 */
+	function getConfig(callback) {
 		if ( ! is_config_protected) {
 			chrome.runtime.sendMessage(
-				{command: 'getConfig', repository: repository_name, pull_request_id: pull_request_id},
-				function(response) {
-					if ( ! is_config_protected) {
-						config = response.data;
-						initialized = true;
-
-						refreshView();
-					}
+				{command: 'getConfig', repository: repository_author_and_name, pull_request_id: pull_request_id},
+				function (response) {
+					callback(response);
 				}
 			);
 		}
@@ -31,163 +264,8 @@ if (chrome && chrome.runtime && url_matches) {
 	}
 
 	function pushConfigChanges() {
-		chrome.runtime.sendMessage({command: 'setConfig', repository: repository_name, pull_request_id: pull_request_id, config: config}, function (response) {
+		chrome.runtime.sendMessage({command: 'setConfig', repository: repository_author_and_name, pull_request_id: pull_request_id, config: config}, function (response) {
 			is_config_protected = false;
 		});
 	}
-
-	function isApproved(fileBlock) {
-		var fileHeader = fileBlock.querySelector('.file-header');
-		var version_hash;
-
-		if ( ! fileHeader.dataset.versionHash) {
-			var fileContents = fileBlock.querySelector('.js-file-content');
-			version_hash = Sha256.hash(fileContents.innerText);
-			fileHeader.dataset.versionHash = version_hash;
-		}
-		else {
-			version_hash = fileHeader.dataset.versionHash;
-		}
-
-		return fileHeader.dataset.path && !! config[fileHeader.dataset.path] && (config[fileHeader.dataset.path] == version_hash);
-	}
-
-	function hideFileContents(fileBlock) {
-		var fileContents = fileBlock.querySelector('.js-file-content');
-		fileContents.style.display = 'none';
-	}
-
-	function showFileContents(fileBlock) {
-		var fileContents = fileBlock.querySelector('.js-file-content');
-		fileContents.style.display = '';
-	}
-
-	function approveFileRevision(fileBlock) {
-		var fileHeader = fileBlock.querySelector('.file-header');
-		var disapproveButton = createDisapproveButton(fileBlock);
-		var approveButton = fileHeader.querySelector('.js-approve-file');
-		var version_hash;
-
-		if ( ! fileHeader.dataset.versionHash) {
-			var fileContents = fileBlock.querySelector('.js-file-content');
-			version_hash = Sha256.hash(fileContents.innerText);
-			fileHeader.dataset.versionHash = version_hash;
-		}
-		else {
-			version_hash = fileHeader.dataset.versionHash;
-		}
-
-		protectConfig();
-		config[fileHeader.dataset.path] = version_hash;
-		pushConfigChanges();
-
-		// Switch buttons
-		fileHeader.querySelector('.file-actions').replaceChild(disapproveButton, approveButton);
-		hideFileContents(fileBlock);
-	}
-
-	function disapproveFileRevision(fileBlock) {
-		var fileHeader = fileBlock.querySelector('.file-header');
-		var approveButton = createApproveButton(fileBlock);
-		var disapproveButton = fileHeader.querySelector('.js-disapprove-file');
-
-		protectConfig();
-		delete config[fileHeader.dataset.path];
-		pushConfigChanges();
-
-		// Switch buttons
-		fileHeader.querySelector('.file-actions').replaceChild(approveButton, disapproveButton);
-		showFileContents(fileBlock);
-	}
-
-	function createApproveButton(fileBlock) {
-		var fileHeader = fileBlock.querySelector('.file-header');
-		var approveButton = document.createElement('a');
-		var version_hash;
-
-		if ( ! fileHeader.dataset.versionHash) {
-			var fileContents = fileBlock.querySelector('.js-file-content');
-			version_hash = Sha256.hash(fileContents.innerText);
-			fileHeader.dataset.versionHash = version_hash;
-		}
-		else {
-			version_hash = fileHeader.dataset.versionHash;
-		}
-
-		approveButton.className = 'btn btn-sm btn-outline js-approve-file';
-		approveButton.rel = 'nofollow';
-		approveButton.href = '#';
-		approveButton.innerHTML = 'Approve changes';
-
-		approveButton.addEventListener('click', function (evt) {
-			evt.preventDefault();
-			approveFileRevision(fileBlock, fileHeader.dataset.path, version_hash);
-		}, false);
-
-		return approveButton;
-	}
-
-	function createDisapproveButton(fileBlock) {
-		var disapproveButton = document.createElement('a');
-
-		disapproveButton.className = 'btn btn-sm btn-danger js-disapprove-file';
-		disapproveButton.rel = 'nofollow';
-		disapproveButton.href = '#';
-		disapproveButton.innerHTML = 'Disapprove changes';
-
-		disapproveButton.addEventListener('click', function (evt) {
-			evt.preventDefault();
-			disapproveFileRevision(fileBlock);
-		}, false);
-
-		return disapproveButton;
-	}
-
-	function refreshView() {
-		if ( ! initialized) {
-			return false;
-		}
-
-		fileBlocks = document.querySelectorAll('.js-file');
-		Array.prototype.forEach.call(fileBlocks, function (eachFileBlock) {
-			var fileBlock = eachFileBlock;
-			var fileHeader = fileBlock.querySelector('.file-header');
-			var is_approved = isApproved(fileBlock);
-
-			if (fileHeader.dataset.codeReviewToolApplied && initialized) {
-				var approveButton = fileHeader.querySelector('.js-approve-file');
-
-				if (
-					(approveButton == null && ! is_approved)
-					|| (approveButton != null && is_approved)
-				) {
-					var button = fileHeader.querySelector('.js-approve-file, .js-disapprove-file');
-					if ( !! button) {
-						button.remove();
-					}
-				}
-				else {
-					// All in sync, nothing to do
-					return;
-				}
-			}
-
-			var actionButton = is_approved
-				? createDisapproveButton(fileBlock)
-				: createApproveButton(fileBlock);
-
-			fileHeader.querySelector('.file-actions').appendChild(actionButton);
-			fileHeader.dataset.codeReviewToolApplied = true;
-
-			if (is_approved) {
-				hideFileContents(fileBlock);
-			}
-			else {
-				showFileContents(fileBlock);
-			}
-		});
-	}
-
-	window.setInterval(function () { getConfig(); }, 500);
-	getConfig();
 }
