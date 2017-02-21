@@ -8,28 +8,66 @@
 <head>
     <title>Getting Started Extension's Popup</title>
     <style>
-        body {
+        * {
             font-family: "Segoe UI", "Lucida Grande", Tahoma, sans-serif;
-            font-size: 100%;
+            font-size: 11pt;
         }
 
         #wrapper {
             margin: 10px;
         }
         #config_container {
-            width: 400px;
+            width: 500px;
             padding: 10px;
         }
+
+        .comment {
+            color: #999;
+        }
+        .form-table { width: 100%; border-width: 0; }
+        .form-table th, .form-table td { margin: 2px; padding: 2px; border-width: 0; }
+        .form-table tbody th { width: 25%; font-weight: normal; background-color: #eee; }
+
+        .settings-block { margin: 10px 0; }
+        .settings-block .block-header {
+            background-color: #000;
+            padding: 4px;
+            color: #fff;
+        }
     </style>
+
+    <script src="lib/jquery-3.1.1.min.js"></script>
 </head>
 <body>
 
 <div id="wrapper">
-    <div>
-        <textarea id="config_container" rows="20"></textarea>
+    <div class="settings-block">
+        <div class="block-header">GitHub API integration</div>
+        <div class="block-content">
+            <table class="form-table">
+                <tbody>
+                <tr>
+                    <th>Token</th>
+                    <td><input type="text" id="github_api_token" style="width:100%;"></td>
+                </tr>
+                </tbody>
+            </table>
+            <div>
+                <button class="js-integration-save">Remember token</button>
+                <button class="js-cleanup-garbage">Cleanup merged PR data</button>
+            </div>
+        </div>
     </div>
-    <div>
-        <button class="js-apply-config">Apply config</button>
+    <div class="settings-block">
+        <div class="block-header">State</div>
+        <div class="block-content">
+            <div>
+                <textarea id="config_container" rows="20"></textarea>
+            </div>
+            <div>
+                <button class="js-apply-config">Apply config</button>
+            </div>
+        </div>
     </div>
 </div>
 

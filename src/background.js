@@ -1,34 +1,100 @@
 chrome.storage.local.get(null, function (data) {
-	var config = data ? data : {};
+	var config = data ? ( !! data.config ? data.config : data) : {};
+	var access_token = data ? ( !! data.access_token ? data.access_token : '') : '';
+
+	function saveStorage() {
+		chrome.storage.local.set({config: config, access_token: access_token});
+	}
 
 	chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-		if (message.command == 'getConfig') {
-			var requested_config = config[message.repository] && config[message.repository][message.pull_request_id]
-				? config[message.repository][message.pull_request_id]
-				: {};
-			sendResponse({data: requested_config});
-		}
-		else if (message.command == 'getFullConfig') {
-			sendResponse({data: config});
-		}
-		else if (message.command == 'setFullConfig') {
-			config = message.data;
-			chrome.storage.local.set(config);
-		}
-		else if (message.command == 'setConfig') {
-			if ( ! config[message.repository]) {
-				config[message.repository] = {};
-			}
-			if ( ! config[message.repository][message.pull_request_id]) {
-				config[message.repository][message.pull_request_id] = {};
-			}
-			config[message.repository][message.pull_request_id] = message.config;
-			chrome.storage.local.set(config);
+		switch (message.command) {
+			case 'getConfig':
+				var requested_config = config[message.repository] && config[message.repository][message.pull_request_id]
+					? config[message.repository][message.pull_request_id]
+					: {};
+				sendResponse({data: requested_config});
+				break;
+
+			case 'getFullConfig':
+				sendResponse({data: config});
+				break;
+
+			case 'setFullConfig':
+				config = message.data;
+				saveStorage();
+				break;
+
+			case 'setConfig':
+				if ( ! config[message.repository]) {
+					config[message.repository] = {};
+				}
+				if ( ! config[message.repository][message.pull_request_id]) {
+					config[message.repository][message.pull_request_id] = {};
+				}
+				config[message.repository][message.pull_request_id] = message.config;
+				saveStorage();
+				break;
+
+			case 'getGitHubAccessToken':
+				sendResponse({data: access_token});
+				break;
+
+			case 'setGitHubAccessToken':
+				access_token = message.data;
+				saveStorage();
+				break;
+
+			case 'wipeClosedPullRequests':
+				var requests = [];
+
+				Object.keys(config).forEach(function (repo_full_name) {
+					Object.keys(config[repo_full_name]).forEach(function (pull_request_id) {
+						requests.push({repo_full_name: repo_full_name, pull_request_id: pull_request_id});
+					});
+				});
+
+				if (requests.length > 0) {
+					function processPullRequest(request) {
+						if ( ! request) {
+							finalizeWipe();
+							return;
+						}
+
+						$.get(
+							'https://api.github.com/repos/'+request.repo_full_name+'/pulls/'+request.pull_request_id,
+							{access_token: message.data.access_token},
+							function (data) {
+								if ( !! data.state && data.state != 'open') {
+									delete config[request.repo_full_name][request.pull_request_id];
+								}
+								
+								processPullRequest(requests.pop());
+							}
+						);
+					}
+
+					processPullRequest(requests.pop());
+				}
+				else {
+					finalizeWipe();
+				}
+
+				function finalizeWipe() {
+					Object.keys(config).forEach(function (repo_full_name) {
+						if (Object.keys(config[repo_full_name]).length == 0) {
+							delete config[repo_full_name];
+						}
+					});
+
+					saveStorage();
+				}
+				break;
+
+			default:
 		}
 	});
 
 	chrome.webNavigation.onHistoryStateUpdated.addListener(function(details) {
 		chrome.tabs.executeScript(null, {file: "content.js"});
 	});
-
 });

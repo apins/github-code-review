@@ -42,7 +42,7 @@ if (chrome && chrome.runtime && url_matches) {
 
 		if ( ! fileHeader.dataset.versionHash) {
 			var fileContents = fileBlock.querySelector('.js-file-content');
-			version_hash = Sha256.hash(fileContents.innerHTML);
+			version_hash = Sha256.hash(fileContents.innerText);
 			fileHeader.dataset.versionHash = version_hash;
 		}
 		else {
@@ -70,7 +70,7 @@ if (chrome && chrome.runtime && url_matches) {
 
 		if ( ! fileHeader.dataset.versionHash) {
 			var fileContents = fileBlock.querySelector('.js-file-content');
-			version_hash = Sha256.hash(fileContents.innerHTML);
+			version_hash = Sha256.hash(fileContents.innerText);
 			fileHeader.dataset.versionHash = version_hash;
 		}
 		else {
@@ -107,7 +107,7 @@ if (chrome && chrome.runtime && url_matches) {
 
 		if ( ! fileHeader.dataset.versionHash) {
 			var fileContents = fileBlock.querySelector('.js-file-content');
-			version_hash = Sha256.hash(fileContents.innerHTML);
+			version_hash = Sha256.hash(fileContents.innerText);
 			fileHeader.dataset.versionHash = version_hash;
 		}
 		else {
@@ -188,7 +188,6 @@ if (chrome && chrome.runtime && url_matches) {
 		});
 	}
 
-	window.setInterval(function () {
-		getConfig();
-	}, 1000);
+	window.setInterval(function () { getConfig(); }, 500);
+	getConfig();
 }

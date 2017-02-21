@@ -10,7 +10,10 @@ Each file gets own `Approve changes` button. Click on it collapses the file mark
 
 **Nearest plans**
 
-1. For now configuration is saved in `localStorage` and available for copy-paste from one working place to another manually.
-The next steps here:
-- make it be synced globally and automatically (using some global storage);
-- allow GitHub token to clean-up for merged releases: no needs to keep them in storage anymore.
+1. Make configuration be synced globally and automatically (using some global storage)
+
+2. Expose approved/not approved files count at pull requests list.
+
+3. Floating file heading panel (very useful for large files).
+
+4. Button to reset pull request config.
