@@ -1,5 +1,8 @@
 var url_matches = window.location.pathname.match(/^\/(.*\/.*)\/.*\/(\d+)\/files/i);
 
+var hhh = new Sha256('abc');
+console.log(hhh);
+
 if (chrome && chrome.runtime && url_matches) {
 	var initialized = false;
 	var is_config_protected = false;
@@ -38,7 +41,10 @@ if (chrome && chrome.runtime && url_matches) {
 
 	function isApproved(fileBlock) {
 		var fileHeader = fileBlock.querySelector('.file-header');
-		return fileHeader.dataset.path && !! config[fileHeader.dataset.path] && (config[fileHeader.dataset.path] == fileHeader.dataset.shortPath);
+		var fileContents = fileBlock.querySelector('.js-file-content');
+		var version_hash = Sha256.hash(fileContents.innerHTML);
+
+		return fileHeader.dataset.path && !! config[fileHeader.dataset.path] && (config[fileHeader.dataset.path] == version_hash);
 	}
 
 	function hideFileContents(fileBlock) {
@@ -53,11 +59,13 @@ if (chrome && chrome.runtime && url_matches) {
 
 	function approveFileRevision(fileBlock) {
 		var fileHeader = fileBlock.querySelector('.file-header');
+		var fileContents = fileBlock.querySelector('.js-file-content');
+		var version_hash = Sha256.hash(fileContents.innerHTML);
 		var disapproveButton = createDisapproveButton(fileBlock);
 		var approveButton = fileHeader.querySelector('.js-approve-file');
 
 		protectConfig();
-		config[fileHeader.dataset.path] = fileHeader.dataset.shortPath;
+		config[fileHeader.dataset.path] = version_hash;
 		pushConfigChanges();
 
 		// Switch buttons
@@ -81,6 +89,8 @@ if (chrome && chrome.runtime && url_matches) {
 
 	function createApproveButton(fileBlock) {
 		var fileHeader = fileBlock.querySelector('.file-header');
+		var fileContents = fileBlock.querySelector('.js-file-content');
+		var version_hash = Sha256.hash(fileContents.innerHTML);
 		var approveButton = document.createElement('a');
 
 		approveButton.className = 'btn btn-sm btn-outline js-approve-file';
@@ -90,7 +100,7 @@ if (chrome && chrome.runtime && url_matches) {
 
 		approveButton.addEventListener('click', function (evt) {
 			evt.preventDefault();
-			approveFileRevision(fileBlock, fileHeader.dataset.path, fileHeader.dataset.shortPath);
+			approveFileRevision(fileBlock, fileHeader.dataset.path, version_hash);
 		}, false);
 
 		return approveButton;

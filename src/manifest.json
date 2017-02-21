@@ -1,8 +1,9 @@
 {
     "manifest_version": 2,
-    "name": "Octo-Superoider",
+    "name": "GitHub code review",
     "description": "Born to superoid the GitHub functionality (starting from pull requests, code review)",
     "version": "1.1.0",
+    
     "browser_action": {
         "default_icon": "icon.png",
         "default_popup": "popup.html"
@@ -10,7 +11,7 @@
     "content_scripts": [
         {
             "matches": ["https://github.com/*"],
-            "js": ["content.js", "popup.js"]
+            "js": ["sha256.js", "content.js"]
         }
     ],
     "background": {
