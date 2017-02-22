@@ -61,7 +61,11 @@ if (pulls_url_matches) {
 		var pullRequestHeader = pullRequestBlock.querySelector('.opened-by');
 		var counterElement = pullRequestHeader.querySelector('.js-changed-files-counter');
 
-		if (approved_files_count == changed_files_count) {
+
+		if (approved_files_count >= changed_files_count) {
+			// Hello, buggy pull requests with 0 changed files: https://github.com/octocat/Hello-World/pulls
+			changed_files_count = approved_files_count;
+
 			markPullRequestReady(pullRequestBlock);
 			counterElement.innerHTML = ', all <strong>'+changed_files_count+'</strong> files passed review';
 		}
@@ -306,7 +310,7 @@ function getPullRequestConfig(repository, pull_request_id, callback) {
 					config[repository][pull_request_id] = {};
 				}
 				config[repository][pull_request_id] = response.data.config;
-				
+
 				callback(response);
 			}
 		);
@@ -383,3 +387,13 @@ function cleanUpExtensionDOMElements() {
 		});
 	}
 }
+
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+	switch (message.command) {
+		case 'ping':
+			sendResponse({data: {message: 'pong'}});
+			break;
+
+		default:
+	}
+});

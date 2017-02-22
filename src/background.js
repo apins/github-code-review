@@ -1,3 +1,5 @@
+'use strict';
+
 chrome.storage.local.get(null, function (settings) {
 	var config = settings ? ( !! settings.config ? settings.config : settings) : {};
 	var access_token = settings ? ( !! settings.access_token ? settings.access_token : '') : '';
@@ -7,8 +9,6 @@ chrome.storage.local.get(null, function (settings) {
 	}
 
 	chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-		var access_token_for_request;
-
 		switch (message.command) {
 			case 'getPullRequestConfig':
 				if ( ! message.repository || ! message.pull_request_id) {
@@ -74,35 +74,51 @@ chrome.storage.local.get(null, function (settings) {
 				break;
 
 			case 'getChangedFilesCount':
-				access_token_for_request = !! message.access_token ? message.access_token : access_token;
-				$.ajax({
-					url: 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id,
-					data: {access_token: access_token_for_request},
-					dataType: 'json',
-					async: false,
-					success: function (xhr_response_data) {
-						sendResponse({data: {changed_files_count: xhr_response_data.changed_files}});
-					},
-					error: function () {
-						sendResponse({data: {changed_files_count: undefined}});
-					}
-				});
+				(function () {
+					var random_request_id = Math.round(Math.random()*8999) + 1000;
+					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
+					var request_url = 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id;
+
+					console.debug('API Request ['+random_request_id+'] ', request_url);
+					$.ajax({
+						url: request_url,
+						data: {access_token: access_token_for_request},
+						dataType: 'json',
+						async: false,
+						success: function (xhr_response_data) {
+							console.debug('API Response ['+random_request_id+']', xhr_response_data);
+							sendResponse({data: {changed_files_count: xhr_response_data.changed_files}});
+						},
+						error: function (xhr, text_status, text_error) {
+							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
+							sendResponse({data: {changed_files_count: undefined}});
+						}
+					});
+				})();
 				break;
 
 			case 'getPullRequestState':
-				access_token_for_request = !! message.access_token ? message.access_token : access_token;
-				$.ajax({
-					url: 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id,
-					data: {access_token: access_token_for_request},
-					dataType: 'json',
-					async: false,
-					success: function (xhr_response_data) {
-						sendResponse({data: {state: xhr_response_data.state}});
-					},
-					error: function () {
-						sendResponse({data: {state: undefined}});
-					}
-				});
+				(function () {
+					var random_request_id = Math.round(Math.random()*8999) + 1000;
+					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
+					var request_url = 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id;
+
+					console.debug('API Request ['+random_request_id+'] ', request_url);
+					$.ajax({
+						url: request_url,
+						data: {access_token: access_token_for_request},
+						dataType: 'json',
+						async: false,
+						success: function (xhr_response_data) {
+							console.debug('API Response ['+random_request_id+']', xhr_response_data);
+							sendResponse({data: {state: xhr_response_data.state}});
+						},
+						error: function (xhr, text_status, text_error) {
+							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
+							sendResponse({data: {state: undefined}});
+						}
+					});
+				})();
 				break;
 
 			case 'getApiToken':
@@ -113,7 +129,13 @@ chrome.storage.local.get(null, function (settings) {
 		}
 	});
 
-	chrome.webNavigation.onHistoryStateUpdated.addListener(function(details) {
-		chrome.tabs.executeScript(null, {file: "content.js"});
+	chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
+		chrome.tabs.get(details.tabId, function (tab) {
+			if (tab.status == 'complete') {
+				chrome.tabs.sendMessage(tab.id, '', function (response) {
+
+				});
+			}
+		});
 	});
 });

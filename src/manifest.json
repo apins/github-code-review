@@ -11,7 +11,14 @@
     "content_scripts": [
         {
             "matches": ["https://github.com/*"],
-            "js": ["lib/sha256.js", "content.js"]
+            "js": [
+                "lib/sha256.js",
+
+                "content/pull_request_files.js",
+                "content/pull_requests.js",
+
+                "router.js"
+            ]
         }
     ],
     "background": {
