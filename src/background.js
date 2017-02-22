@@ -1,54 +1,71 @@
-chrome.storage.local.get(null, function (data) {
-	// @todo: rename `data` to `settings` and `config` to `approvedFiles`
-
-	var config = data ? ( !! data.config ? data.config : data) : {};
-	var access_token = data ? ( !! data.access_token ? data.access_token : '') : '';
+chrome.storage.local.get(null, function (settings) {
+	var config = settings ? ( !! settings.config ? settings.config : settings) : {};
+	var access_token = settings ? ( !! settings.access_token ? settings.access_token : '') : '';
 
 	function saveStorage() {
 		chrome.storage.local.set({config: config, access_token: access_token});
 	}
 
 	chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+		var access_token_for_request;
+
 		switch (message.command) {
-			case 'getConfig':
-				var requested_config;
+			case 'getPullRequestConfig':
+				if ( ! message.repository || ! message.pull_request_id) {
+					sendResponse({data: {config: null}});
+					break;
+				}
 
-				if ( !! message.pull_request_id) {
-					requested_config = config[message.repository] && config[message.repository][message.pull_request_id]
+				sendResponse({data: {
+					config: config[message.repository] && config[message.repository][message.pull_request_id]
 						? config[message.repository][message.pull_request_id]
-						: {};
-				}
-				else {
-					requested_config = config[message.repository] ? config[message.repository] : {};
-				}
-
-				sendResponse({data: requested_config});
+						: {}
+				}});
 				break;
 
-			// @todo: merge into 'getConfig' with ` !! message.repository` condition
+			case 'getRepositoryConfig':
+				if ( ! message.repository) {
+					sendResponse({data: {config: null}});
+					break;
+				}
+
+				sendResponse({data: {
+					config: config[message.repository] ? config[message.repository] : {}
+				}});
+				break;
+
 			case 'getFullConfig':
-				sendResponse({data: config});
+				sendResponse({data: {config: config}});
 				break;
 
 			case 'setFullConfig':
-				// @todo: sub-property of `data` should be used instead: `message.data.config`
-				config = message.data;
+				config = message.config;
 				saveStorage();
 				break;
 
-			case 'setConfig':
+			case 'setPullRequestConfig':
 				if ( ! config[message.repository]) {
 					config[message.repository] = {};
 				}
 				if ( ! config[message.repository][message.pull_request_id]) {
 					config[message.repository][message.pull_request_id] = {};
 				}
+
 				config[message.repository][message.pull_request_id] = message.config;
+
+				if (Object.keys(config[message.repository][message.pull_request_id]).length == 0) {
+					delete config[message.repository][message.pull_request_id];
+				}
+				if (Object.keys(config[message.repository]).length == 0) {
+					delete config[message.repository];
+				}
+
 				saveStorage();
+				
 				break;
 
 			case 'getGitHubAccessToken':
-				sendResponse({data: access_token});
+				sendResponse({data: {access_token: access_token}});
 				break;
 
 			case 'setGitHubAccessToken':
@@ -56,55 +73,34 @@ chrome.storage.local.get(null, function (data) {
 				saveStorage();
 				break;
 
-			case 'wipeClosedPullRequests':
-				var requests = [];
-
-				Object.keys(config).forEach(function (repo_full_name) {
-					Object.keys(config[repo_full_name]).forEach(function (pull_request_id) {
-						requests.push({repo_full_name: repo_full_name, pull_request_id: pull_request_id});
-					});
-				});
-
-				function processPullRequest(request) {
-					if ( ! request) {
-						finalizeWipe();
-						return;
-					}
-
-					// @todo: switch to sync!
-					$.get(
-						'https://api.github.com/repos/'+request.repo_full_name+'/pulls/'+request.pull_request_id,
-						{access_token: message.data.access_token},
-						function (data) {
-							if ( !! data.state && data.state != 'open') {
-								delete config[request.repo_full_name][request.pull_request_id];
-							}
-
-							processPullRequest(requests.pop());
-						}
-					);
-				}
-				processPullRequest(requests.pop());
-
-				function finalizeWipe() {
-					Object.keys(config).forEach(function (repo_full_name) {
-						if (Object.keys(config[repo_full_name]).length == 0) {
-							delete config[repo_full_name];
-						}
-					});
-
-					saveStorage();
-				}
-				break;
-
 			case 'getChangedFilesCount':
+				access_token_for_request = !! message.access_token ? message.access_token : access_token;
 				$.ajax({
 					url: 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id,
-					data: {access_token: access_token},
+					data: {access_token: access_token_for_request},
 					dataType: 'json',
 					async: false,
-					success: function (data) {
-						sendResponse({data: {changed_files_count: data.changed_files}});
+					success: function (xhr_response_data) {
+						sendResponse({data: {changed_files_count: xhr_response_data.changed_files}});
+					},
+					error: function () {
+						sendResponse({data: {changed_files_count: undefined}});
+					}
+				});
+				break;
+
+			case 'getPullRequestState':
+				access_token_for_request = !! message.access_token ? message.access_token : access_token;
+				$.ajax({
+					url: 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id,
+					data: {access_token: access_token_for_request},
+					dataType: 'json',
+					async: false,
+					success: function (xhr_response_data) {
+						sendResponse({data: {state: xhr_response_data.state}});
+					},
+					error: function () {
+						sendResponse({data: {state: undefined}});
 					}
 				});
 				break;
