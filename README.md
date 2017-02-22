@@ -8,9 +8,9 @@ Google Chrome extension to simplify code review of pull requests at GitHub
 
 1. Each file gets own `Approve changes` button. Click on it collapses the file marking it as `passed review`.
 
-2. Wipe out outdated config data of merged or closed pull requests  (GitHub user api token with `pull` permission required);
+2. Wipe out outdated config data of merged or closed pull requests  (GitHub user api token with `repo` permission required);
 
-3. Expose approved/not approved files count at pull requests list (GitHub user api token with `pull` permission required).
+3. Expose files count that passed review at pull requests list (GitHub user api token with `repo` permission required).
 
 **Nearest plans**
 
