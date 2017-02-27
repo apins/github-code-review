@@ -121,6 +121,54 @@ chrome.storage.local.get(null, function (settings) {
 				})();
 				break;
 
+			case 'getPullRequestFiles':
+				(function () {
+					var random_request_id = Math.round(Math.random()*8999) + 1000;
+					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
+					var request_url = 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id+'/files';
+
+					console.debug('API Request ['+random_request_id+'] ', request_url);
+					$.ajax({
+						url: request_url,
+						data: {access_token: access_token_for_request},
+						dataType: 'json',
+						async: false,
+						success: function (xhr_response_data) {
+							console.debug('API Response ['+random_request_id+']', xhr_response_data);
+							sendResponse({data: {files: xhr_response_data}});
+						},
+						error: function (xhr, text_status, text_error) {
+							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
+							sendResponse({data: {files: undefined}});
+						}
+					});
+				})();
+				break;
+
+			case 'getPullRequestComments':
+				(function () {
+					var random_request_id = Math.round(Math.random()*8999) + 1000;
+					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
+					var request_url = 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id+'/comments';
+
+					console.debug('API Request ['+random_request_id+'] ', request_url);
+					$.ajax({
+						url: request_url,
+						data: {access_token: access_token_for_request},
+						dataType: 'json',
+						async: false,
+						success: function (xhr_response_data) {
+							console.debug('API Response ['+random_request_id+']', xhr_response_data);
+							sendResponse({data: {comments: xhr_response_data}});
+						},
+						error: function (xhr, text_status, text_error) {
+							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
+							sendResponse({data: {comments: undefined}});
+						}
+					});
+				})();
+				break;
+
 			case 'getApiToken':
 				sendResponse({data: {access_token: access_token}});
 				break;
@@ -132,9 +180,9 @@ chrome.storage.local.get(null, function (settings) {
 	chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
 		chrome.tabs.get(details.tabId, function (tab) {
 			if (tab.status == 'complete') {
-				chrome.tabs.sendMessage(tab.id, '', function (response) {
-
-				});
+				chrome.tabs.executeScript(null, {file: "content/common.js"});
+				chrome.tabs.executeScript(null, {file: "content/pull_requests.js"});
+				chrome.tabs.executeScript(null, {file: "content/pull_request_files.js"});
 			}
 		});
 	});
