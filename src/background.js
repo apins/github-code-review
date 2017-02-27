@@ -122,6 +122,8 @@ chrome.storage.local.get(null, function (settings) {
 				break;
 
 			case 'getPullRequestFiles':
+				// @todo: implement ttl
+				
 				(function () {
 					var random_request_id = Math.round(Math.random()*8999) + 1000;
 					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
@@ -146,6 +148,8 @@ chrome.storage.local.get(null, function (settings) {
 				break;
 
 			case 'getPullRequestComments':
+				// @todo: implement ttl
+
 				(function () {
 					var random_request_id = Math.round(Math.random()*8999) + 1000;
 					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
