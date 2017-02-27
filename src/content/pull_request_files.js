@@ -123,10 +123,14 @@ if (pull_files_url_matches) {
 		approveButton.rel = 'nofollow';
 		approveButton.href = '#';
 		approveButton.innerHTML = 'Approve changes';
-		approveButton.addEventListener('click', function (evt) {
+		$(approveButton).on('click', function (evt) {
 			evt.preventDefault();
+
+			// Scroll to the button
+			$('html, body').animate({scrollTop: $(fileBlock).offset().top - 53}, 1200);
+
 			approveFileRevision(fileBlock, file_path, revision);
-		}, false);
+		});
 
 		return approveButton;
 	}
@@ -137,10 +141,10 @@ if (pull_files_url_matches) {
 		disapproveButton.rel = 'nofollow';
 		disapproveButton.href = '#';
 		disapproveButton.innerHTML = 'Disapprove changes';
-		disapproveButton.addEventListener('click', function (evt) {
+		$(disapproveButton).on('click', function (evt) {
 			evt.preventDefault();
 			disapproveFileRevision(fileBlock);
-		}, false);
+		});
 
 		return disapproveButton;
 	}
@@ -208,9 +212,42 @@ if (pull_files_url_matches) {
 		);
 	}
 
-	window.setInterval(function () { decoratePullRequestFiles(); }, 500);
-	window.setInterval(function () { refreshFilesAndComments(); }, 5000);
 	refreshFilesAndComments(function () {
 		decoratePullRequestFiles();
 	});
+
+	window.setInterval(function () { decoratePullRequestFiles(); }, 100);
+	window.setInterval(function () { refreshFilesAndComments(); }, 5000);
+
+	var floatingFileHeader = null;
+	var filesContainer = $('#files');
+	document.addEventListener('scroll', function (event) {
+		var scrolled_away_file_headers = jQuery('.file-header')
+			.filter(function (ind, fileHeader) {
+				return $(fileHeader).offset().top - $(window).scrollTop() < 60;
+			});
+
+		function getFilePathByHeader(fileHeader) {
+			return $(fileHeader).find('.file-info a').attr('title');
+		}
+
+		if (scrolled_away_file_headers.length > 0) {
+			if (floatingFileHeader == null || getFilePathByHeader(floatingFileHeader) != getFilePathByHeader(scrolled_away_file_headers.last())) {
+				if (floatingFileHeader != null) {
+					floatingFileHeader.remove();
+				}
+				floatingFileHeader = $(scrolled_away_file_headers.last()).clone(true);
+				floatingFileHeader.css({position: 'fixed', top: '60px', zIndex: 1000000, width: filesContainer.css('width')});
+
+				filesContainer.prepend(floatingFileHeader);
+			}
+		}
+		else {
+			if (floatingFileHeader != null) {
+				floatingFileHeader.remove();
+				floatingFileHeader = null;
+			}
+		}
+
+	}, false);
 }

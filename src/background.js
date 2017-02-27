@@ -180,9 +180,10 @@ chrome.storage.local.get(null, function (settings) {
 	chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
 		chrome.tabs.get(details.tabId, function (tab) {
 			if (tab.status == 'complete') {
-				chrome.tabs.executeScript(null, {file: "content/common.js"});
-				chrome.tabs.executeScript(null, {file: "content/pull_requests.js"});
-				chrome.tabs.executeScript(null, {file: "content/pull_request_files.js"});
+				chrome.tabs.executeScript(tab.id, {file: "lib/jquery-3.1.1.min.js"});
+				chrome.tabs.executeScript(tab.id, {file: "content/common.js"});
+				chrome.tabs.executeScript(tab.id, {file: "content/pull_requests.js"});
+				chrome.tabs.executeScript(tab.id, {file: "content/pull_request_files.js"});
 			}
 		});
 	});

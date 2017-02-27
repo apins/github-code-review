@@ -12,10 +12,10 @@ Google Chrome extension to simplify code review of pull requests at GitHub
 
 3. Expose files count that passed review at pull requests list (GitHub user api token with `repo` permission required).
 
+4. Floating file heading panel (very useful for large files).
+
 **Nearest plans**
 
-1. Make configuration be synced globally and automatically (using some global storages)
+1. Make configuration be synced globally and automatically (using some global storages) 
 
-2. Floating file heading panel (very useful for large files).
-
-3. Button to reset pull request config.
+2. Button to reset pull request config.

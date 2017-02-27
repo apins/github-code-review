@@ -99,13 +99,3 @@ function cleanUpExtensionDOMElements() {
 		});
 	}
 }
-
-chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-	switch (message.command) {
-		case 'ping':
-			sendResponse({data: {message: 'pong'}});
-			break;
-
-		default:
-	}
-});

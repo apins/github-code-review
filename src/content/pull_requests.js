@@ -29,6 +29,7 @@ if (pulls_url_matches) {
 					pullRequestHeader.dataset.changed_files_count_requested = true;
 
 					window.setTimeout(function () {
+						console.log('Changed files count for '+block_pull_request_id);
 						getPullRequestChangedFilesCount(block_pull_request_id, function (count) {
 							pullRequestHeader.dataset.changed_files_count = count;
 							updatePullRequestCounter(pullRequestBlock, approved_files_count, count);
@@ -105,6 +106,7 @@ if (pulls_url_matches) {
 		});
 	}
 
-	window.setInterval(function () { decoratePullRequests(); }, 500);
 	decoratePullRequests();
+	
+	window.setInterval(function () { decoratePullRequests(); }, 100);
 }
