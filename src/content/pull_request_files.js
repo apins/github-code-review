@@ -221,22 +221,30 @@ if (pull_files_url_matches) {
 
 	var floatingFileHeader = null;
 	var filesContainer = $('#files');
+	var $window = $(window);
+	var previous_scrolled_away_file_headers_count = 0;
 	document.addEventListener('scroll', function (event) {
-		var scrolled_away_file_headers = jQuery('.file-header')
-			.filter(function (ind, fileHeader) {
-				return $(fileHeader).offset().top - $(window).scrollTop() < 60;
-			});
+		var scrolled_away_file_headers = Array.prototype.filter.call(document.querySelectorAll('.file-header'), function (fileHeader) {
+			return $(fileHeader).offset().top - $window.scrollTop() < 60;
+		});
+
+		if (previous_scrolled_away_file_headers_count == scrolled_away_file_headers.length) {
+			return;// Do not waste CPU if nothing changed
+		}
+		previous_scrolled_away_file_headers_count = scrolled_away_file_headers.length;
+		
+		var lastFileHeader = scrolled_away_file_headers[scrolled_away_file_headers.length-1];
 
 		function getFilePathByHeader(fileHeader) {
-			return $(fileHeader).find('.file-info a').attr('title');
+			return fileHeader.find('.file-info a').attr('title');
 		}
 
 		if (scrolled_away_file_headers.length > 0) {
-			if (floatingFileHeader == null || getFilePathByHeader(floatingFileHeader) != getFilePathByHeader(scrolled_away_file_headers.last())) {
+			if (floatingFileHeader == null || getFilePathByHeader(floatingFileHeader) != getFilePathByHeader($(lastFileHeader))) {
 				if (floatingFileHeader != null) {
 					floatingFileHeader.remove();
 				}
-				floatingFileHeader = $(scrolled_away_file_headers.last()).clone(true);
+				floatingFileHeader = $(lastFileHeader).clone(true);
 				floatingFileHeader.css({position: 'fixed', top: '60px', zIndex: 1000000, width: filesContainer.css('width')});
 
 				filesContainer.prepend(floatingFileHeader);

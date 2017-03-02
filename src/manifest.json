@@ -22,7 +22,12 @@
         }
     ],
     "background": {
-        "scripts": ["lib/jquery-3.1.1.min.js", "background.js"],
+        "scripts": [
+            "lib/jquery-3.1.1.min.js",
+            "lib/moment.min.js",
+            
+            "background.js"
+        ],
         "persistent": true
     },
     "permissions": [
