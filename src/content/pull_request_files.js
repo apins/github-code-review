@@ -232,19 +232,20 @@ if (pull_files_url_matches) {
 			return;// Do not waste CPU if nothing changed
 		}
 		previous_scrolled_away_file_headers_count = scrolled_away_file_headers.length;
-		
-		var lastFileHeader = scrolled_away_file_headers[scrolled_away_file_headers.length-1];
+
+		var lastFileHeader = scrolled_away_file_headers.pop();
 
 		function getFilePathByHeader(fileHeader) {
 			return fileHeader.find('.file-info a').attr('title');
 		}
 
-		if (scrolled_away_file_headers.length > 0) {
+		if ( !! lastFileHeader) {
 			if (floatingFileHeader == null || getFilePathByHeader(floatingFileHeader) != getFilePathByHeader($(lastFileHeader))) {
 				if (floatingFileHeader != null) {
 					floatingFileHeader.remove();
 				}
 				floatingFileHeader = $(lastFileHeader).clone(true);
+				floatingFileHeader.addClass('form-control focus');
 				floatingFileHeader.css({position: 'fixed', top: '60px', zIndex: 1000000, width: filesContainer.css('width')});
 
 				filesContainer.prepend(floatingFileHeader);
