@@ -7,8 +7,9 @@ chrome.storage.local.get(null, function (settings) {
 	// Min seconds between the same API requests
 	var ttl_pull_request_files = 5;
 	var ttl_pull_request_comments = 10;
+	var ttl_pull_requests = 10;
 
-	var cached_api_responses = {files: {}, comments: {}};
+	var cached_api_responses = {files: {}, comments: {}, pull_requests: {}};
 
 	function saveStorage() {
 		chrome.storage.local.set({config: config, access_token: access_token});
@@ -80,6 +81,16 @@ chrome.storage.local.get(null, function (settings) {
 				break;
 
 			case 'getChangedFilesCount':
+				// Response with cached data when available
+				if (
+					!! cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id]
+					&& moment(cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id].timestamp) >= moment().subtract(ttl_pull_requests, 'seconds')
+				) {
+					console.log('Cached response used for pull request info (repository: '+message.repository+', pull request: '+message.pull_request_id+')');
+					sendResponse({data: {changed_files_count: cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id].response.changed_files}});
+					break;
+				}
+
 				(function () {
 					var random_request_id = Math.round(Math.random()*8999) + 1000;
 					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
@@ -93,6 +104,10 @@ chrome.storage.local.get(null, function (settings) {
 						async: false,
 						success: function (xhr_response_data) {
 							console.debug('API Response ['+random_request_id+']', xhr_response_data);
+
+							// Cache response
+							cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id] = {response: xhr_response_data, timestamp: moment().format()};
+
 							sendResponse({data: {changed_files_count: xhr_response_data.changed_files}});
 						},
 						error: function (xhr, text_status, text_error) {
@@ -104,6 +119,16 @@ chrome.storage.local.get(null, function (settings) {
 				break;
 
 			case 'getPullRequestState':
+				// Response with cached data when available
+				if (
+					!! cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id]
+					&& moment(cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id].timestamp) >= moment().subtract(ttl_pull_requests, 'seconds')
+				) {
+					console.log('Cached response used for pull request info (repository: '+message.repository+', pull request: '+message.pull_request_id+')');
+					sendResponse({data: {state: cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id].response.state}});
+					break;
+				}
+
 				(function () {
 					var random_request_id = Math.round(Math.random()*8999) + 1000;
 					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
@@ -117,6 +142,10 @@ chrome.storage.local.get(null, function (settings) {
 						async: false,
 						success: function (xhr_response_data) {
 							console.debug('API Response ['+random_request_id+']', xhr_response_data);
+
+							// Cache response
+							cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id] = {response: xhr_response_data, timestamp: moment().format()};
+							
 							sendResponse({data: {state: xhr_response_data.state}});
 						},
 						error: function (xhr, text_status, text_error) {
@@ -130,11 +159,11 @@ chrome.storage.local.get(null, function (settings) {
 			case 'getPullRequestFiles':
 				// Response with cached data when available
 				if (
-					!! cached_api_responses.files[message.repository+'_'+message.pull_request_id]
-					&& moment(cached_api_responses.files[message.repository+'_'+message.pull_request_id].timestamp) >= moment().subtract(ttl_pull_request_files, 'seconds')
+					!! cached_api_responses.files[message.repository+'_'+message.pull_request_id+'_'+message.page]
+					&& moment(cached_api_responses.files[message.repository+'_'+message.pull_request_id+'_'+message.page].timestamp) >= moment().subtract(ttl_pull_request_files, 'seconds')
 				) {
-					console.log('Cached response used for files (repository: '+message.repository+', pull request: '+message.pull_request_id+')');
-					sendResponse({data: {files: cached_api_responses.files[message.repository+'_'+message.pull_request_id].response}});
+					console.log('Cached response used for files (repository: '+message.repository+', pull request: '+message.pull_request_id+', page: '+message.page+')');
+					sendResponse({data: {files: cached_api_responses.files[message.repository+'_'+message.pull_request_id+'_'+message.page].response}});
 					break;
 				}
 
@@ -146,20 +175,20 @@ chrome.storage.local.get(null, function (settings) {
 					console.debug('API Request ['+random_request_id+'] ', request_url);
 					$.ajax({
 						url: request_url,
-						data: {access_token: access_token_for_request},
+						data: {access_token: access_token_for_request, page: message.page},
 						dataType: 'json',
 						async: false,
 						success: function (xhr_response_data) {
 							console.debug('API Response ['+random_request_id+']', xhr_response_data);
 
 							// Cache response
-							cached_api_responses.files[message.repository+'_'+message.pull_request_id] = {response: xhr_response_data, timestamp: moment().format()};
-							
-							sendResponse({data: {files: xhr_response_data}});
+							cached_api_responses.files[message.repository+'_'+message.pull_request_id+'_'+message.page] = {response: xhr_response_data, timestamp: moment().format()};
+
+							sendResponse({data: {files: xhr_response_data, page: message.page}});
 						},
 						error: function (xhr, text_status, text_error) {
 							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
-							sendResponse({data: {files: undefined}});
+							sendResponse({data: {files: undefined, page: message.page}});
 						}
 					});
 				})();
@@ -171,7 +200,7 @@ chrome.storage.local.get(null, function (settings) {
 					!! cached_api_responses.comments[message.repository+'_'+message.pull_request_id]
 					&& moment(cached_api_responses.comments[message.repository+'_'+message.pull_request_id].timestamp) >= moment().subtract(ttl_pull_request_comments, 'seconds')
 				) {
-					console.log('Cached response used for files (repository: '+message.repository+', pull request: '+message.pull_request_id+')');
+					console.log('Cached response used for comments (repository: '+message.repository+', pull request: '+message.pull_request_id+')');
 					sendResponse({data: {comments: cached_api_responses.comments[message.repository+'_'+message.pull_request_id].response}});
 					break;
 				}

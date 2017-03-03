@@ -14,10 +14,6 @@ if (pull_files_url_matches) {
 
 				// No info from GitHub about this file: probably it was unmodified back
 				if ( ! pull_request_file_state_stamps[file_path]) {
-					Array.prototype.forEach.call(
-						fileHeader.querySelectorAll('.js-approve-file, .js-disapprove-file'),
-						function (actionButton) { actionButton.remove(); }
-					);
 					return;
 				}
 
@@ -26,7 +22,11 @@ if (pull_files_url_matches) {
 					var disapproveButton = fileHeader.querySelector('.js-disapprove-file');
 
 					// Check consistency
-					if ((approveButton != null && is_approved) || (disapproveButton != null && ! is_approved)) {
+					if (
+						(approveButton != null && is_approved)
+						|| (disapproveButton != null && ! is_approved)
+						|| (approveButton == null && disapproveButton == null)
+					) {
 						Array.prototype.forEach.call(
 							fileHeader.querySelectorAll('.js-approve-file, .js-disapprove-file'),
 							function (actionButton) { actionButton.remove(); }
@@ -174,6 +174,10 @@ if (pull_files_url_matches) {
 					// Skip comments that are not related to files
 					return;
 				}
+				
+				if ( ! pull_request_file_state_stamps[commentItem.path]) {
+					return;
+				}
 
 				if (
 					pull_request_file_state_stamps[commentItem.path].last_comment_date == null
@@ -184,32 +188,52 @@ if (pull_files_url_matches) {
 			});
 		}
 
-		sendMessage(
-			'getPullRequestFiles',
-			{repository: repository_author_and_name, pull_request_id: pull_request_id},
-			function (response) {
-				files = response.data.files;
-				if ( !! files &&  !! comments) {
+		getPullRequestFiles(repository_author_and_name, pull_request_id, function (files_list) {
+			files = files_list;
+			sendMessage(
+				'getPullRequestComments',
+				{repository: repository_author_and_name, pull_request_id: pull_request_id},
+				function (response) {
+					comments = response.data.comments;
 					setPullRequestFileStateStamps();
 					if (typeof callback == 'function') {
 						callback();
 					}
 				}
-			}
-		);
-		sendMessage(
-			'getPullRequestComments',
-			{repository: repository_author_and_name, pull_request_id: pull_request_id},
-			function (response) {
-				comments = response.data.comments;
-				if ( !! files &&  !! comments) {
-					setPullRequestFileStateStamps();
-					if (typeof callback == 'function') {
-						callback();
+			);
+		});
+	}
+
+	function getPullRequestFiles(repository, pull_request_id, callback) {
+		getPullRequestChangedFilesCount(repository, pull_request_id, function (pull_request_files_count) {
+			var files_list = [];
+			var request_failed = false;
+			var current_page = 1;
+
+			function getFilesForPage() {
+				sendMessage(
+					'getPullRequestFiles',
+					{repository: repository, pull_request_id: pull_request_id, page: current_page},
+					function (response) {
+						if (response.data.files) {
+							files_list = files_list.concat(response.data.files);
+							if (files_list.length < pull_request_files_count) {
+								current_page++;
+								getFilesForPage(current_page);
+							}
+							else {
+								callback(files_list);
+							}
+						}
+						else {
+							request_failed = true;
+						}
 					}
-				}
+				);
 			}
-		);
+
+			getFilesForPage();
+		});
 	}
 
 	refreshFilesAndComments(function () {
@@ -219,8 +243,11 @@ if (pull_files_url_matches) {
 	window.setInterval(function () { decoratePullRequestFiles(); }, 100);
 	window.setInterval(function () { refreshFilesAndComments(); }, 5000);
 
+	var floatingFileHeaderContainer = $(document.createElement('div'))
+		.attr({id: 'floating_file_header_container'})
+		.insertBefore(document.getElementById('files'));
+
 	var floatingFileHeader = null;
-	var filesContainer = $('#files');
 	var $window = $(window);
 	var previous_scrolled_away_file_headers_count = 0;
 	document.addEventListener('scroll', function (event) {
@@ -246,9 +273,9 @@ if (pull_files_url_matches) {
 				}
 				floatingFileHeader = $(lastFileHeader).clone(true);
 				floatingFileHeader.addClass('form-control focus');
-				floatingFileHeader.css({position: 'fixed', top: '60px', zIndex: 1000000, width: filesContainer.css('width')});
+				floatingFileHeader.css({position: 'fixed', top: '60px', zIndex: 1000000, width: $('#files').css('width')});
 
-				filesContainer.prepend(floatingFileHeader);
+				floatingFileHeaderContainer.empty().prepend(floatingFileHeader);
 			}
 		}
 		else {
