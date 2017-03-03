@@ -28,6 +28,14 @@ function getPullRequestConfig(repository, pull_request_id, callback) {
 	}
 }
 
+function getPullRequestChangedFilesCount(repository, pull_request_id, callback) {
+	sendMessage('getChangedFilesCount', {repository: repository, pull_request_id: pull_request_id}, function (response) {
+		if (response && !! response.data && typeof callback == 'function') {
+			callback(response.data.changed_files_count);
+		}
+	});
+}
+
 function getRepositoryConfig(repository, callback) {
 	if ( ! is_config_protected) {
 		sendMessage(

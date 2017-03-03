@@ -30,7 +30,7 @@ if (pulls_url_matches) {
 
 					window.setTimeout(function () {
 						console.log('Changed files count for '+block_pull_request_id);
-						getPullRequestChangedFilesCount(block_pull_request_id, function (count) {
+						getPullRequestChangedFilesCount(repository_author_and_name, block_pull_request_id, function (count) {
 							pullRequestHeader.dataset.changed_files_count = count;
 							updatePullRequestCounter(pullRequestBlock, approved_files_count, count);
 						});
@@ -86,14 +86,6 @@ if (pulls_url_matches) {
 		counter.style.color = '#767676';
 		counter.style.whiteSpace = 'nowrap';
 		pullRequestHeader.appendChild(counter);
-	}
-
-	function getPullRequestChangedFilesCount(pull_request_id, callback) {
-		sendMessage('getChangedFilesCount', {repository: repository_author_and_name, pull_request_id: pull_request_id}, function (response) {
-			if (response && !! response.data) {
-				callback(response.data.changed_files_count);
-			}
-		});
 	}
 
 	function decoratePullRequests() {
