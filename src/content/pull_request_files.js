@@ -127,7 +127,7 @@ if (pull_files_url_matches) {
 			evt.preventDefault();
 
 			// Scroll to the button
-			$('html, body').animate({scrollTop: $(fileBlock).offset().top - 53}, 1200);
+			$('html, body').animate({scrollTop: $(fileBlock).offset().top - 53}, 100);
 
 			approveFileRevision(fileBlock, file_path, revision);
 		});

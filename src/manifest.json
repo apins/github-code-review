@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "GitHub code review",
     "description": "Born to superoid the GitHub functionality (starting from pull requests, code review)",
-    "version": "2.0.1",
+    "version": "2.1.0",
     
     "browser_action": {
         "default_icon": "icon.png",

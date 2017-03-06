@@ -14,10 +14,10 @@
         }
 
         #wrapper {
-            margin: 10px;
+            min-width: 800px;
+            margin-top: 10px;
         }
         #config_container {
-            width: 500px;
             padding: 10px;
         }
 
@@ -34,43 +34,119 @@
             padding: 4px;
             color: #fff;
         }
+
+        .panel-body .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        a[data-toggle=collapse] { text-decoration: none !important; }
+
+        a[data-toggle=collapse].collapsed .glyphicon-chevron-down,
+        a[data-toggle=collapse] .glyphicon-chevron-right {
+            display: none;
+        }
+        a[data-toggle=collapse].collapsed .glyphicon-chevron-right {
+            display: inherit;
+        }
+
+        a.css-collapse-expand-list.collapsed .glyphicon-collapse-down,
+        a.css-collapse-expand-list .glyphicon-expand {
+            display: none;
+        }
+        a.css-collapse-expand-list.collapsed .glyphicon-expand {
+            display: inherit;
+        }
     </style>
 
-    <script src="lib/jquery-3.1.1.min.js"></script>
+    <link rel="stylesheet" href="lib/bootstrap-3.3.7/css/bootstrap.min.css">
 </head>
 <body>
 
-<div id="wrapper">
-    <div class="settings-block">
-        <div class="block-header">GitHub API integration</div>
-        <div class="block-content">
-            <table class="form-table">
-                <tbody>
-                <tr>
-                    <th>Token</th>
-                    <td><input type="text" id="github_api_token" style="width:100%;"></td>
-                </tr>
-                </tbody>
-            </table>
-            <div>
-                <button class="js-integration-save">Remember token</button>
-                <button class="js-cleanup-garbage">Cleanup merged PR data</button>
+<div id="wrapper" class="container">
+    <div class="row">
+        <div class="col-md-12">
+
+            <div class="panel-group">
+                <div class="panel panel-info">
+                    <div class="panel-heading" role="tab" id="headingToken">
+                        <h4 class="panel-title">
+                            <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseToken" aria-expanded="true" aria-controls="collapseToken">
+                                <span class="glyphicon glyphicon-chevron-down"></span>
+                                <span class="glyphicon glyphicon-chevron-right"></span>
+
+                                GitHub API integration
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseToken" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingToken">
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <label for="github_api_token">Token with <code>repo</code> privileges</label>
+                                <input class="form-control input-sm" type="text" id="github_api_token" />
+                            </div>
+                            <div class="form-group">
+                                <button class="btn btn-sm btn-primary js-integration-save">Remember token</button>
+                                <button class="btn btn-sm btn-danger js-cleanup-garbage">Cleanup merged PR data</button>
+                            </div>
+                            <div class="form-group" style="display: none">
+                                <div class="progress">
+                                    <div id="merged_pr_data_cleanup_progressbar" class="progress-bar progress-bar-danger progress-bar-striped" role="progressbar" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel panel-info">
+                    <div class="panel-heading" role="tab" id="headingConfig">
+                        <h4 class="panel-title">
+                            <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseConfig" aria-expanded="false" aria-controls="collapseConfig">
+                                <span class="glyphicon glyphicon-chevron-down"></span>
+                                <span class="glyphicon glyphicon-chevron-right"></span>
+
+                                State <span id="state_info_human_readable" class="text-muted"></span>
+                            </a>
+                        </h4>
+                    </div>
+                    <div id="collapseConfig" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingConfig">
+                        <div class="panel-body">
+
+                            <!-- Nav tabs -->
+                            <ul class="nav nav-tabs nav-tabs-sm" role="tablist">
+                                <li role="presentation" class="active"><a href="#home" class="btn-sm" aria-controls="home" role="tab" data-toggle="tab">View</a></li>
+                                <li role="presentation"><a href="#profile" class="btn-sm" aria-controls="profile" role="tab" data-toggle="tab">Edit manually</a></li>
+                            </ul>
+                            <br>
+
+                            <!-- Tab panes -->
+                            <div class="tab-content">
+                                <div role="tabpanel" class="tab-pane active" id="home">
+                                    <div class="form-group">
+                                        <div id="json_config_container"></div>
+                                    </div>
+                                </div>
+                                <div role="tabpanel" class="tab-pane" id="profile">
+                                    <div class="form-group">
+                                        <textarea id="config_container" class="form-control input-sm" rows="5" style="width:100%;"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <button class="btn btn-sm btn-primary js-apply-config">Apply config</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="settings-block">
-        <div class="block-header">State</div>
-        <div class="block-content">
-            <div>
-                <textarea id="config_container" rows="20"></textarea>
-            </div>
-            <div>
-                <button class="js-apply-config">Apply config</button>
-            </div>
+
         </div>
     </div>
 </div>
 
+<script src="lib/jquery-3.1.1.min.js"></script>
+<script src="lib/bootstrap-3.3.7/js/bootstrap.min.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>
