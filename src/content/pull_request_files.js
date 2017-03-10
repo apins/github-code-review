@@ -9,7 +9,7 @@ if (pull_files_url_matches) {
 				var fileBlock = eachFileBlock;
 				var fileHeader = fileBlock.querySelector('.file-header');
 				var file_path = fileHeader.querySelector('.file-info a').getAttribute('title');
-				var is_approved = isFileApproved(file_path);
+				var is_approved = isFileApproved(config, pull_request_file_state_stamps, repository_author_and_name, pull_request_id, file_path);
 				var actionButton;
 
 				// No info from GitHub about this file: probably it was unmodified back
@@ -50,21 +50,6 @@ if (pull_files_url_matches) {
 				fileHeader.dataset.codeReviewToolApplied = true;
 			});
 		}
-	}
-
-	function isFileApproved(file_path) {
-		if ( ! pull_request_file_state_stamps[file_path]) {
-			return false;
-		}
-
-		return !! config[repository_author_and_name]
-			&& !! config[repository_author_and_name][pull_request_id]
-			&& !! config[repository_author_and_name][pull_request_id][file_path]
-			&& config[repository_author_and_name][pull_request_id][file_path].hash == pull_request_file_state_stamps[file_path].hash
-
-			// Do not forget to suffer
-			&& ! (moment(config[repository_author_and_name][pull_request_id][file_path].last_comment_date) > moment(pull_request_file_state_stamps[file_path].last_comment_date))
-			&& ! (moment(config[repository_author_and_name][pull_request_id][file_path].last_comment_date) < moment(pull_request_file_state_stamps[file_path].last_comment_date));
 	}
 
 	function hideFileContents(fileBlock) {
@@ -155,93 +140,12 @@ if (pull_files_url_matches) {
 		});
 	}
 
-	function refreshFilesAndComments(callback) {
-		var files = undefined;
-		var comments = undefined;
-
-		function setPullRequestFileStateStamps() {
-			pull_request_file_state_stamps = {};
-
-			files.forEach(function (fileItem) {
-				pull_request_file_state_stamps[fileItem.filename] = {
-					hash: fileItem.sha,
-					last_comment_date: null
-				};
-			});
-
-			comments.forEach(function (commentItem) {
-				if ( ! commentItem.path && ! commentItem.position) {
-					// Skip comments that are not related to files
-					return;
-				}
-				
-				if ( ! pull_request_file_state_stamps[commentItem.path]) {
-					return;
-				}
-
-				if (
-					pull_request_file_state_stamps[commentItem.path].last_comment_date == null
-					|| moment(commentItem.updated_at) > moment(pull_request_file_state_stamps[commentItem.path].last_comment_date)
-				) {
-					pull_request_file_state_stamps[commentItem.path].last_comment_date = moment(commentItem.updated_at).format();
-				}
-			});
-		}
-
-		getPullRequestFiles(repository_author_and_name, pull_request_id, function (files_list) {
-			files = files_list;
-			sendMessage(
-				'getPullRequestComments',
-				{repository: repository_author_and_name, pull_request_id: pull_request_id},
-				function (response) {
-					comments = response.data.comments;
-					setPullRequestFileStateStamps();
-					if (typeof callback == 'function') {
-						callback();
-					}
-				}
-			);
-		});
-	}
-
-	function getPullRequestFiles(repository, pull_request_id, callback) {
-		getPullRequestChangedFilesCount(repository, pull_request_id, function (pull_request_files_count) {
-			var files_list = [];
-			var request_failed = false;
-			var current_page = 1;
-
-			function getFilesForPage() {
-				sendMessage(
-					'getPullRequestFiles',
-					{repository: repository, pull_request_id: pull_request_id, page: current_page},
-					function (response) {
-						if (response.data.files) {
-							files_list = files_list.concat(response.data.files);
-							if (files_list.length < pull_request_files_count) {
-								current_page++;
-								getFilesForPage(current_page);
-							}
-							else {
-								callback(files_list);
-							}
-						}
-						else {
-							request_failed = true;
-						}
-					}
-				);
-			}
-
-			getFilesForPage();
-		});
-	}
-
-	refreshFilesAndComments(function () {
+	refreshStampsStorage(pull_request_file_state_stamps, repository_author_and_name, pull_request_id, function () {
 		decoratePullRequestFiles();
 	});
 
 	window.setInterval(function () { decoratePullRequestFiles(); }, 100);
-	window.setInterval(function () { refreshFilesAndComments(); }, 5000);
+	window.setInterval(function () { refreshStampsStorage(pull_request_file_state_stamps, repository_author_and_name, pull_request_id); }, 5000);
 
 	var floatingFileHeaderContainer = $(document.createElement('div'))
 		.attr({id: 'floating_file_header_container'})
