@@ -21,25 +21,38 @@ if (pulls_url_matches) {
 					return;// Must be impossible situation
 				}
 
-				var approved_files_count = !! config[repository][block_pull_request_id]
-					? Object.keys(config[repository][block_pull_request_id]).length
-					: 0;
-
 				if (changed_files_count == null && ! pullRequestHeader.dataset.changed_files_count_requested) {
 					pullRequestHeader.dataset.changed_files_count_requested = true;
 
 					window.setTimeout(function () {
-						console.log('Changed files count for '+block_pull_request_id);
-						getPullRequestChangedFilesCount(repository_author_and_name, block_pull_request_id, function (count) {
-							pullRequestHeader.dataset.changed_files_count = count;
-							updatePullRequestCounter(pullRequestBlock, approved_files_count, count);
+						var closured_repository = repository;
+
+						getPullRequestFiles(repository_author_and_name, block_pull_request_id, function (files_list) {
+							var stamps_storage = {};
+
+							refreshStampsStorage(stamps_storage, repository_author_and_name, block_pull_request_id, function () {
+								var approved_files_count = 0;
+
+								if ( !! config[closured_repository][block_pull_request_id]) {
+									Object.keys(config[closured_repository][block_pull_request_id]).forEach(function (filename) {
+										if (isFileApproved(config, stamps_storage, closured_repository, block_pull_request_id, filename)) {
+											approved_files_count++;
+										}
+									});
+								}
+								stamps_storage = null;
+
+								pullRequestHeader.dataset.changed_files_count = files_list.length;
+								pullRequestHeader.dataset.approved_files_count = approved_files_count;
+								updatePullRequestCounter(pullRequestBlock, approved_files_count, files_list.length);
+							});
 						});
 					}, 0);
 
 					createChangedFilesCounter(pullRequestHeader);
 				}
 				else if (changed_files_count != null) {
-					updatePullRequestCounter(pullRequestBlock, approved_files_count, changed_files_count);
+					updatePullRequestCounter(pullRequestBlock, pullRequestHeader.dataset.approved_files_count, changed_files_count);
 				}
 			});
 		}
