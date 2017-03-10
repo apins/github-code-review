@@ -130,22 +130,26 @@ function setPullRequestConfig(repository, pull_request_id, config) {
 // Fallback for situation when extension was reloaded (updated, deleted, etc)
 var reload_confirmation_asked = false;
 function sendMessage(command, data, closure) {
+	window.setTimeout(function () {
+		syncSendMessage(command, data, closure);
+	}, 0);
+}
+
+function syncSendMessage(command, data, closure) {
 	data.command = command;
 
-	window.setTimeout(function () {
-		try {
-			chrome.runtime.sendMessage(data, closure);
-		}
-		catch ($e) {
-			if ( ! reload_confirmation_asked) {
-				reload_confirmation_asked = true;
-				cleanUpExtensionDOMElements();
-				if (confirm('Extension "'+extension_name+' v'+extension_version+'" was unloaded.\nTo proceed using it you need to refresh the page.\n\nRefresh now?')) {
-					document.location.href = document.location.href;
-				}
+	try {
+		chrome.runtime.sendMessage(data, closure);
+	}
+	catch ($e) {
+		if ( ! reload_confirmation_asked) {
+			reload_confirmation_asked = true;
+			cleanUpExtensionDOMElements();
+			if (confirm('Extension "'+extension_name+' v'+extension_version+'" was unloaded.\nTo proceed using it you need to refresh the page.\n\nRefresh now?')) {
+				document.location.href = document.location.href;
 			}
 		}
-	}, 0);
+	}
 }
 
 function getPullRequestFiles(repository, pull_request_id, callback) {
