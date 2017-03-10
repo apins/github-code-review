@@ -156,6 +156,44 @@ chrome.storage.local.get(null, function (settings) {
 				})();
 				break;
 
+			case 'getPullRequestTitle':
+				// Response with cached data when available
+				if (
+					!! cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id]
+					&& moment(cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id].timestamp) >= moment().subtract(ttl_pull_requests, 'seconds')
+				) {
+					console.log('Cached response used for pull request info (repository: '+message.repository+', pull request: '+message.pull_request_id+')');
+					sendResponse({data: {title: cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id].response.title}});
+					break;
+				}
+
+				(function () {
+					var random_request_id = Math.round(Math.random()*8999) + 1000;
+					var access_token_for_request = !! message.access_token ? message.access_token : access_token;
+					var request_url = 'https://api.github.com/repos/'+message.repository+'/pulls/'+message.pull_request_id;
+
+					console.debug('API Request ['+random_request_id+'] ', request_url);
+					$.ajax({
+						url: request_url,
+						data: {access_token: access_token_for_request},
+						dataType: 'json',
+						async: false,
+						success: function (xhr_response_data) {
+							console.debug('API Response ['+random_request_id+']', xhr_response_data);
+
+							// Cache response
+							cached_api_responses.pull_requests[message.repository+'_'+message.pull_request_id] = {response: xhr_response_data, timestamp: moment().format()};
+
+							sendResponse({data: {title: xhr_response_data.title}});
+						},
+						error: function (xhr, text_status, text_error) {
+							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
+							sendResponse({data: {title: undefined}});
+						}
+					});
+				})();
+				break;
+
 			case 'getPullRequestFiles':
 				// Response with cached data when available
 				if (
