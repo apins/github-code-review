@@ -5,10 +5,10 @@ chrome.storage.local.get(null, function (settings) {
 	var access_token = settings ? ( !! settings.access_token ? settings.access_token : '') : '';
 
 	// Min seconds between the same API requests
-	var ttl_pull_request_files = 0;
-	var ttl_pull_request_comments = 0;
-	var ttl_pull_request = 0;
-	var ttl_repository_pull_requests = 0;
+	var ttl_pull_request_files = 5;
+	var ttl_pull_request_comments = 5;
+	var ttl_pull_request = 5;
+	var ttl_repository_pull_requests = 5;
 
 	var cached_api_responses = {files: {}, comments: {}, pull_requests: {}, repository_pull_requests: {}};
 
@@ -196,8 +196,9 @@ chrome.storage.local.get(null, function (settings) {
 					var headers = {};
 
 					var requestParams = {
-						state: message.state ? message.state : 'open',
-						per_page: message.per_page ? message.per_page : 25,
+						page: 1,
+						state: message.state ? message.state : 'all',
+						per_page: message.per_page ? message.per_page : 500,
 						sort: message.sort ? message.sort : 'created',
 						direction: message.direction ? message.direction : 'desc'
 					};
@@ -208,7 +209,7 @@ chrome.storage.local.get(null, function (settings) {
 					if ( !! cached_api_responses.repository_pull_requests[request_key]) {
 						if (moment(cached_api_responses.repository_pull_requests[request_key].timestamp) >= moment().subtract(ttl_repository_pull_requests, 'seconds')) {
 							console.log('Cached response used for pull requests list (repository: '+message.repository+')');
-							sendResponse({data: {state: cached_api_responses.repository_pull_requests[request_key].response.state}});
+							sendResponse({data: {pull_requests: cached_api_responses.repository_pull_requests[request_key].response}});
 							return;
 						}
 
@@ -231,7 +232,7 @@ chrome.storage.local.get(null, function (settings) {
 						success: function (xhr_response_data, text_status, xhr) {
 							if (xhr.status == 304) {
 								console.debug('API Response ['+random_request_id+'] not modified');
-								sendResponse({data: {state: cached_api_responses.repository_pull_requests[request_key].response.state}});
+								sendResponse({data: {pull_requests: cached_api_responses.repository_pull_requests[request_key].response}});
 								return;
 							}
 
@@ -248,7 +249,7 @@ chrome.storage.local.get(null, function (settings) {
 						},
 						error: function (xhr, text_status, text_error) {
 							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
-							sendResponse({data: {state: undefined}});
+							sendResponse({data: {pull_requests: undefined}});
 						}
 					});
 				})();
@@ -367,7 +368,7 @@ chrome.storage.local.get(null, function (settings) {
 			case 'getPullRequestComments':
 				(function () {
 					var headers = {};
-					var request_key = message.repository+'_'+message.pull_request_id;
+					var request_key = message.repository+'_'+message.pull_request_id+'_'+message.page;
 
 					// Response with cached data when available
 					if ( !! cached_api_responses.comments[request_key]) {
@@ -389,7 +390,7 @@ chrome.storage.local.get(null, function (settings) {
 					console.debug('API Request ['+random_request_id+'] ', request_url);
 					$.ajax({
 						url: request_url,
-						data: {access_token: access_token_for_request},
+						data: {access_token: access_token_for_request, page: message.page, per_page: 300},
 						dataType: 'json',
 						async: false,
 						headers: headers,
@@ -409,11 +410,11 @@ chrome.storage.local.get(null, function (settings) {
 								lastModified: xhr.getResponseHeader('Last-Modified')
 							};
 
-							sendResponse({data: {comments: xhr_response_data}});
+							sendResponse({data: {comments: xhr_response_data, page: message.page}});
 						},
 						error: function (xhr, text_status, text_error) {
 							console.debug('API Response FAILED ['+random_request_id+'] (status: '+text_status+') '+text_error, xhr);
-							sendResponse({data: {comments: undefined}});
+							sendResponse({data: {comments: undefined, page: message.page}});
 						}
 					});
 				})();

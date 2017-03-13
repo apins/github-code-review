@@ -83,21 +83,88 @@ function refreshStampsStorage(stamps_storage, repository, pull_request_id, callb
 		});
 	}
 
+	
 	getPullRequestFiles(repository, pull_request_id, function (files_list) {
 		files = files_list;
+		if (typeof files != 'undefined' && typeof comments != 'undefined') {
+			setPullRequestFileStateStamps();
+			if (typeof callback == 'function') {
+				callback();
+			}
+		}
+	});
+
+	getPullRequestComments(repository, pull_request_id, function (comments_list) {
+		comments = comments_list;
+		if (typeof files != 'undefined' && typeof comments != 'undefined') {
+			setPullRequestFileStateStamps();
+			if (typeof callback == 'function') {
+				callback();
+			}
+		}
+	});
+}
+
+function getPullRequestFiles(repository, pull_request_id, callback) {
+	var files_list = [];
+	var request_failed = false;
+
+	function getFilesForPage(current_page) {
 		sendMessage(
-			'getPullRequestComments',
-			{repository: repository, pull_request_id: pull_request_id},
+			'getPullRequestFiles',
+			{repository: repository, pull_request_id: pull_request_id, page: current_page},
 			function (response) {
-				comments = response.data.comments;
-				setPullRequestFileStateStamps();
-				if (typeof callback == 'function') {
-					callback();
+				if (response.data.files) {
+					files_list = files_list.concat(response.data.files);
+					var surely_the_last_page = response.data.files.length % 10 != 0;
+
+					if (response.data.files.length > 0 && ! surely_the_last_page) {
+						getFilesForPage(current_page+1);
+					}
+					else {
+						callback(files_list);
+					}
+				}
+				else {
+					request_failed = true;
 				}
 			}
 		);
-	});
+	}
+
+	getFilesForPage(1);
 }
+
+function getPullRequestComments(repository, pull_request_id, callback) {
+	var comments_list = [];
+	var request_failed = false;
+
+	function getCommentsForPage(current_page) {
+		sendMessage(
+			'getPullRequestComments',
+			{repository: repository, pull_request_id: pull_request_id, page: current_page},
+			function (response) {
+				if (response.data.comments) {
+					comments_list = comments_list.concat(response.data.comments);
+					var surely_the_last_page = response.data.comments.length % 10 != 0;
+
+					if (response.data.comments.length > 0 && ! surely_the_last_page) {
+						getCommentsForPage(current_page+1);
+					}
+					else {
+						callback(comments_list);
+					}
+				}
+				else {
+					request_failed = true;
+				}
+			}
+		);
+	}
+
+	getCommentsForPage(1);
+}
+
 
 function isFileApproved(config, pull_request_file_state_stamps, repository_author_and_name, pull_request_id, file_path) {
 	if ( ! pull_request_file_state_stamps[file_path]) {
@@ -150,38 +217,6 @@ function syncSendMessage(command, data, closure) {
 			}
 		}
 	}
-}
-
-function getPullRequestFiles(repository, pull_request_id, callback) {
-	getPullRequestChangedFilesCount(repository, pull_request_id, function (pull_request_files_count) {
-		var files_list = [];
-		var request_failed = false;
-		var current_page = 1;
-
-		function getFilesForPage() {
-			sendMessage(
-				'getPullRequestFiles',
-				{repository: repository, pull_request_id: pull_request_id, page: current_page},
-				function (response) {
-					if (response.data.files) {
-						files_list = files_list.concat(response.data.files);
-						if (files_list.length < pull_request_files_count) {
-							current_page++;
-							getFilesForPage(current_page);
-						}
-						else {
-							callback(files_list);
-						}
-					}
-					else {
-						request_failed = true;
-					}
-				}
-			);
-		}
-
-		getFilesForPage();
-	});
 }
 
 function cleanUpExtensionDOMElements() {

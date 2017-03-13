@@ -26,32 +26,37 @@ if (pulls_url_matches) {
 
 					window.setTimeout(function () {
 						var closured_repository = repository;
+						var closured_pull_request_id = block_pull_request_id;
+						var closured_pullRequestBlock = pullRequestBlock;
+						var closured_pullRequestHeader = pullRequestHeader;
+						var stamps_storage = {};
 
-						getPullRequestFiles(repository_author_and_name, block_pull_request_id, function (files_list) {
-							var stamps_storage = {};
+						refreshStampsStorage(stamps_storage, repository_author_and_name, closured_pull_request_id, function () {
+							var approved_files_count = 0;
 
-							refreshStampsStorage(stamps_storage, repository_author_and_name, block_pull_request_id, function () {
-								var approved_files_count = 0;
+							if ( !! config[closured_repository][closured_pull_request_id]) {
+								Object.keys(config[closured_repository][closured_pull_request_id]).forEach(function (filename) {
+									if (isFileApproved(config, stamps_storage, closured_repository, closured_pull_request_id, filename)) {
+										approved_files_count++;
+									}
+								});
+							}
 
-								if ( !! config[closured_repository][block_pull_request_id]) {
-									Object.keys(config[closured_repository][block_pull_request_id]).forEach(function (filename) {
-										if (isFileApproved(config, stamps_storage, closured_repository, block_pull_request_id, filename)) {
-											approved_files_count++;
-										}
-									});
-								}
-								stamps_storage = null;
+							closured_pullRequestHeader.dataset.changed_files_count = Object.keys(stamps_storage).length;
+							closured_pullRequestHeader.dataset.approved_files_count = approved_files_count;
+							updatePullRequestCounter(closured_pullRequestBlock, approved_files_count, Object.keys(stamps_storage).length);
 
-								pullRequestHeader.dataset.changed_files_count = files_list.length;
-								pullRequestHeader.dataset.approved_files_count = approved_files_count;
-								updatePullRequestCounter(pullRequestBlock, approved_files_count, files_list.length);
-							});
+							closured_repository = null;
+							closured_pull_request_id = null;
+							closured_pullRequestBlock = null;
+							closured_pullRequestHeader = null;
+							stamps_storage = null;
 						});
 					}, 0);
 
 					createChangedFilesCounter(pullRequestHeader);
 				}
-				else if (changed_files_count != null) {
+				else if (typeof changed_files_count == 'number') {
 					updatePullRequestCounter(pullRequestBlock, pullRequestHeader.dataset.approved_files_count, changed_files_count);
 				}
 			});
@@ -90,7 +95,7 @@ if (pulls_url_matches) {
 
 	function createChangedFilesCounter(pullRequestHeader) {
 		var counter = document.createElement('span');
-		counter.innerHTML = '';
+		counter.innerHTML = ', loading reviews data...';
 		counter.className = 'js-changed-files-counter';
 		counter.style.fontWeight = 'normal';
 		counter.style.fontSize = '10pt';
