@@ -48,6 +48,8 @@ if (pull_files_url_matches) {
 				}
 				fileHeader.querySelector('.file-actions').appendChild(actionButton);
 				fileHeader.dataset.codeReviewToolApplied = true;
+
+				redrawFloatingFileHeader(true);
 			});
 		}
 	}
@@ -81,6 +83,7 @@ if (pull_files_url_matches) {
 			fileHeader.querySelector('.js-approve-file')
 		);
 		hideFileContents(fileBlock);
+		redrawFloatingFileHeader(true);
 	}
 
 	function disapproveFileRevision(fileBlock) {
@@ -97,6 +100,7 @@ if (pull_files_url_matches) {
 			fileHeader.querySelector('.js-disapprove-file')
 		);
 		showFileContents(fileBlock);
+		redrawFloatingFileHeader(true);
 	}
 
 	function createFileApproveButton(fileBlock) {
@@ -147,19 +151,26 @@ if (pull_files_url_matches) {
 	window.setInterval(function () { decoratePullRequestFiles(); }, 100);
 	window.setInterval(function () { refreshStampsStorage(pull_request_file_state_stamps, repository_author_and_name, pull_request_id); }, 5000);
 
-	var floatingFileHeaderContainer = $(document.createElement('div'))
-		.attr({id: 'floating_file_header_container'})
-		.insertBefore(document.getElementById('files'));
+	var floatingFileHeaderContainer = $('#floating_file_header_container').empty();
+	if (floatingFileHeaderContainer.length == 0) {
+		floatingFileHeaderContainer = $(document.createElement('div'))
+			.attr({id: 'floating_file_header_container'})
+			.insertBefore(document.getElementById('files'));
+	}
 
 	var floatingFileHeader = null;
 	var $window = $(window);
 	var previous_scrolled_away_file_headers_count = 0;
-	document.addEventListener('scroll', function (event) {
-		var scrolled_away_file_headers = Array.prototype.filter.call(document.querySelectorAll('.file-header'), function (fileHeader) {
-			return $(fileHeader).offset().top - $window.scrollTop() < 60;
+	document.addEventListener('scroll', function () {
+		redrawFloatingFileHeader();
+	}, false);
+
+	function redrawFloatingFileHeader(forced) {
+		var scrolled_away_file_headers = Array.prototype.filter.call(document.querySelectorAll('#files .file-header'), function (fileHeader) {
+			return $(fileHeader).offset().top - $window.scrollTop() < 62;
 		});
 
-		if (previous_scrolled_away_file_headers_count == scrolled_away_file_headers.length) {
+		if ( ! forced && previous_scrolled_away_file_headers_count == scrolled_away_file_headers.length) {
 			return;// Do not waste CPU if nothing changed
 		}
 		previous_scrolled_away_file_headers_count = scrolled_away_file_headers.length;
@@ -171,7 +182,7 @@ if (pull_files_url_matches) {
 		}
 
 		if ( !! lastFileHeader) {
-			if (floatingFileHeader == null || getFilePathByHeader(floatingFileHeader) != getFilePathByHeader($(lastFileHeader))) {
+			if (forced || floatingFileHeader == null || getFilePathByHeader(floatingFileHeader) != getFilePathByHeader($(lastFileHeader))) {
 				if (floatingFileHeader != null) {
 					floatingFileHeader.remove();
 				}
@@ -187,7 +198,13 @@ if (pull_files_url_matches) {
 				floatingFileHeader.remove();
 				floatingFileHeader = null;
 			}
+			floatingFileHeaderContainer.empty()
 		}
+	}
 
-	}, false);
+	$(document).on('click', '[data-filterable-for="files-changed-filter-field"] a', function (evt) {
+		window.setTimeout(function () {
+			$('html, body').css({scrollTop: $window.scrollTop() + 2});
+		}, 20);
+	});
 }
