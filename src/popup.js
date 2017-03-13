@@ -55,6 +55,42 @@ $(document).ready(function () {
 		}
 	});
 
+	$(document).on('click', '.js-copy-repository-to-clipboard', function (evt) {
+		evt.preventDefault();
+		var repository = $(this).data('repository');
+		var _this = this;
+
+		chrome.runtime.sendMessage({command: 'getFullConfig'}, function (response) {
+			var config = response.data.config;
+			var repository_config = {};
+
+			repository_config[repository] = config[repository];
+
+			chrome.runtime.sendMessage({command: 'copyToClipboard', text: JSON.stringify(repository_config)}, function (response) {
+				blink($(_this).closest('tr'));
+			});
+		});
+	});
+
+	$(document).on('click', '.js-copy-pull-request-to-clipboard', function (evt) {
+		evt.preventDefault();
+		var repository = $(this).data('repository');
+		var pull_request_id = $(this).data('pull-request-id');
+		var _this = this;
+
+		chrome.runtime.sendMessage({command: 'getFullConfig'}, function (response) {
+			var config = response.data.config;
+			var repository_config = {};
+
+			repository_config[repository] = {};
+			repository_config[repository][pull_request_id] = config[repository][pull_request_id];
+
+			chrome.runtime.sendMessage({command: 'copyToClipboard', text: JSON.stringify(repository_config)}, function (response) {
+				blink($(_this).closest('tr'));
+			});
+		});
+	});
+
 	function refreshView(config) {
 		refreshTextarea(config);
 		refreshTableConfigView(config);
@@ -157,8 +193,6 @@ $(document).ready(function () {
 	}
 
 	function updatePullRequestsTitles() {
-		console.log(pull_requests_names);
-
 		$('.js-pull-request-name-container').each(function () {
 			var repository = $(this).data('repository');
 			var pull_request_id = $(this).data('pull-request-id');
@@ -183,8 +217,22 @@ $(document).ready(function () {
 							.html(each_repository)
 					),
 					$(document.createElement('th')).append(
-						$(document.createElement('a')).attr({href: '#'}).html('Forget repository')
-							.addClass('js-forget-repository')
+						// Copy to clipboard
+						$(document.createElement('a')).attr({href: '#', title: 'Copy repository config to clipboard'})
+							.append(
+								$(document.createElement('i')).addClass('glyphicon glyphicon-duplicate')
+							)
+							.addClass('js-copy-repository-to-clipboard')
+							.data({repository: each_repository}),
+
+						document.createTextNode(' '),
+
+						// Clear
+						$(document.createElement('a')).attr({href: '#', title: 'Forget repository'})
+							.append(
+								$(document.createElement('strong')).addClass('glyphicon glyphicon-trash')
+							)
+							.addClass('js-forget-repository text-danger')
 							.data({repository: each_repository})
 					)
 				)
@@ -208,8 +256,23 @@ $(document).ready(function () {
 								)
 						),
 						$(document.createElement('td')).append(
-							$(document.createElement('a')).attr({href: '#'}).html('Forget pull request')
-								.addClass('js-forget-pull-request')
+							// Copy to clipboard
+							$(document.createElement('a')).attr({href: '#', title: 'Copy pull request config to clipboard'})
+								.append(
+									$(document.createElement('i')).addClass('glyphicon glyphicon-duplicate')
+								)
+								.addClass('js-copy-pull-request-to-clipboard')
+								.data({repository: each_repository})
+								.data({pullRequestId: each_pull_request_id}),
+
+							document.createTextNode(' '),
+
+							// Clear
+							$(document.createElement('a')).attr({href: '#', title: 'Forget pull request'})
+								.append(
+									$(document.createElement('i')).addClass('glyphicon glyphicon-trash')
+								)
+								.addClass('js-forget-pull-request text-danger')
 								.data({repository: each_repository})
 								.data({pullRequestId: each_pull_request_id})
 						)
@@ -238,6 +301,10 @@ $(document).ready(function () {
 	function unlockTextarea() {
 		document.querySelector('#config_container').removeAttribute('disabled');
 		document.querySelector('#config_container').removeAttribute('readonly');
+	}
+
+	function blink(element) {
+		$(element).fadeIn(300).fadeOut(300).fadeIn(300).fadeOut(300).fadeIn(300);
 	}
 
 	window.setInterval(function () {

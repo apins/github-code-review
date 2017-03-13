@@ -1,6 +1,6 @@
 'use strict';
 
-chrome.storage.local.get(null, function (settings) {
+chrome.storage.sync.get(null, function (settings) {
 	var config = settings ? ( !! settings.config ? settings.config : settings) : {};
 	var access_token = settings ? ( !! settings.access_token ? settings.access_token : '') : '';
 
@@ -13,11 +13,27 @@ chrome.storage.local.get(null, function (settings) {
 	var cached_api_responses = {files: {}, comments: {}, pull_requests: {}, repository_pull_requests: {}};
 
 	function saveStorage() {
-		chrome.storage.local.set({config: config, access_token: access_token});
+		chrome.storage.sync.set({config: config, access_token: access_token});
 	}
 
 	chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 		switch (message.command) {
+			// Clipboard functionality
+			case 'copyToClipboard':
+				var input = document.createElement('textarea');
+				
+				document.body.appendChild(input);
+				input.value = message.text;
+				input.focus();
+				input.select();
+
+				var copy_result = document.execCommand('Copy');
+				input.remove();
+
+				sendResponse({data: {result: copy_result}});
+
+				break;
+
 			case 'getPullRequestConfig':
 				if ( ! message.repository || ! message.pull_request_id) {
 					sendResponse({data: {config: null}});

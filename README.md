@@ -14,8 +14,8 @@ Google Chrome extension to simplify code review of pull requests at GitHub
 
 4. Floating file heading panel (very useful for large files).
 
+5. Make configuration be synced globally and automatically (using Chrome's native sync).
+
+6. Button to reset pull request config.
+
 **Nearest plans**
-
-1. Make configuration be synced globally and automatically (using some global storages) 
-
-2. Button to reset pull request config.
