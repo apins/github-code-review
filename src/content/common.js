@@ -48,6 +48,139 @@ function getRepositoryConfig(repository, callback) {
 	}
 }
 
+function refreshStampsStorage(stamps_storage, repository, pull_request_id, callback) {
+	var files = undefined;
+	var comments = undefined;
+
+	function setPullRequestFileStateStamps() {
+		Object.keys(stamps_storage).forEach(function (key) {
+			delete stamps_storage[key];
+		});
+
+		files.forEach(function (fileItem) {
+			stamps_storage[fileItem.filename] = {
+				hash: fileItem.sha,
+				last_comment_date: null
+			};
+		});
+
+		comments.forEach(function (commentItem) {
+			if ( ! commentItem.path && ! commentItem.position) {
+				// Skip comments that are not related to files
+				return;
+			}
+
+			if ( ! stamps_storage[commentItem.path]) {
+				return;
+			}
+
+			if (
+				stamps_storage[commentItem.path].last_comment_date == null
+				|| moment(commentItem.updated_at) > moment(stamps_storage[commentItem.path].last_comment_date)
+			) {
+				stamps_storage[commentItem.path].last_comment_date = moment(commentItem.updated_at).format();
+			}
+		});
+	}
+
+	
+	getPullRequestFiles(repository, pull_request_id, function (files_list) {
+		files = files_list;
+		if (typeof files != 'undefined' && typeof comments != 'undefined') {
+			setPullRequestFileStateStamps();
+			if (typeof callback == 'function') {
+				callback();
+			}
+		}
+	});
+
+	getPullRequestComments(repository, pull_request_id, function (comments_list) {
+		comments = comments_list;
+		if (typeof files != 'undefined' && typeof comments != 'undefined') {
+			setPullRequestFileStateStamps();
+			if (typeof callback == 'function') {
+				callback();
+			}
+		}
+	});
+}
+
+function getPullRequestFiles(repository, pull_request_id, callback) {
+	var files_list = [];
+	var request_failed = false;
+
+	function getFilesForPage(current_page) {
+		sendMessage(
+			'getPullRequestFiles',
+			{repository: repository, pull_request_id: pull_request_id, page: current_page},
+			function (response) {
+				if (response.data.files) {
+					files_list = files_list.concat(response.data.files);
+					var surely_the_last_page = response.data.files.length % 10 != 0;
+
+					if (response.data.files.length > 0 && ! surely_the_last_page) {
+						getFilesForPage(current_page+1);
+					}
+					else {
+						callback(files_list);
+					}
+				}
+				else {
+					request_failed = true;
+				}
+			}
+		);
+	}
+
+	getFilesForPage(1);
+}
+
+function getPullRequestComments(repository, pull_request_id, callback) {
+	var comments_list = [];
+	var request_failed = false;
+
+	function getCommentsForPage(current_page) {
+		sendMessage(
+			'getPullRequestComments',
+			{repository: repository, pull_request_id: pull_request_id, page: current_page},
+			function (response) {
+				if (response.data.comments) {
+					comments_list = comments_list.concat(response.data.comments);
+					var surely_the_last_page = response.data.comments.length % 10 != 0;
+
+					if (response.data.comments.length > 0 && ! surely_the_last_page) {
+						getCommentsForPage(current_page+1);
+					}
+					else {
+						callback(comments_list);
+					}
+				}
+				else {
+					request_failed = true;
+				}
+			}
+		);
+	}
+
+	getCommentsForPage(1);
+}
+
+
+function isFileApproved(config, pull_request_file_state_stamps, repository_author_and_name, pull_request_id, file_path) {
+	if ( ! pull_request_file_state_stamps[file_path]) {
+		return false;
+	}
+
+	return !! config[repository_author_and_name]
+		&& !! config[repository_author_and_name][pull_request_id]
+		&& !! config[repository_author_and_name][pull_request_id][file_path]
+		&& config[repository_author_and_name][pull_request_id][file_path].hash == pull_request_file_state_stamps[file_path].hash
+
+		// Do not forget to suffer
+		&& ! (moment(config[repository_author_and_name][pull_request_id][file_path].last_comment_date) > moment(pull_request_file_state_stamps[file_path].last_comment_date))
+		&& ! (moment(config[repository_author_and_name][pull_request_id][file_path].last_comment_date) < moment(pull_request_file_state_stamps[file_path].last_comment_date));
+}
+
 function protectConfig() {
 	is_config_protected = true;
 }
@@ -64,22 +197,26 @@ function setPullRequestConfig(repository, pull_request_id, config) {
 // Fallback for situation when extension was reloaded (updated, deleted, etc)
 var reload_confirmation_asked = false;
 function sendMessage(command, data, closure) {
+	window.setTimeout(function () {
+		syncSendMessage(command, data, closure);
+	}, 0);
+}
+
+function syncSendMessage(command, data, closure) {
 	data.command = command;
 
-	window.setTimeout(function () {
-		try {
-			chrome.runtime.sendMessage(data, closure);
-		}
-		catch ($e) {
-			if ( ! reload_confirmation_asked) {
-				reload_confirmation_asked = true;
-				cleanUpExtensionDOMElements();
-				if (confirm('Extension "'+extension_name+' v'+extension_version+'" was unloaded.\nTo proceed using it you need to refresh the page.\n\nRefresh now?')) {
-					document.location.href = document.location.href;
-				}
+	try {
+		chrome.runtime.sendMessage(data, closure);
+	}
+	catch ($e) {
+		if ( ! reload_confirmation_asked) {
+			reload_confirmation_asked = true;
+			cleanUpExtensionDOMElements();
+			if (confirm('Extension "'+extension_name+' v'+extension_version+'" was unloaded.\nTo proceed using it you need to refresh the page.\n\nRefresh now?')) {
+				document.location.href = document.location.href;
 			}
 		}
-	}, 0);
+	}
 }
 
 function cleanUpExtensionDOMElements() {
