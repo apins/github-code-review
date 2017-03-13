@@ -11,6 +11,7 @@ if (pulls_url_matches) {
 				var pullRequestBlock = eachPullRequestBlock;
 				var pullRequestHeader = pullRequestBlock.querySelector('.opened-by');
 				var changed_files_count = pullRequestHeader.dataset.changed_files_count;
+				var approved_files_count = pullRequestHeader.dataset.approved_files_count;
 				var block_pull_request_id;
 
 				var pull_request_matches = pullRequestBlock.id.match(/issue_(\d+)/i);
@@ -57,7 +58,7 @@ if (pulls_url_matches) {
 					createChangedFilesCounter(pullRequestHeader);
 				}
 				else if (typeof changed_files_count == 'number') {
-					updatePullRequestCounter(pullRequestBlock, pullRequestHeader.dataset.approved_files_count, changed_files_count);
+					updatePullRequestCounter(pullRequestBlock, approved_files_count, changed_files_count);
 				}
 			});
 		}
