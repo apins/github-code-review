@@ -57,7 +57,7 @@ if (pulls_url_matches) {
 
                     createChangedFilesCounter(pullRequestHeader);
                 }
-                else if (typeof changed_files_count == 'number') {
+                else if (typeof changed_files_count === 'number') {
                     updatePullRequestCounter(pullRequestBlock, approved_files_count, changed_files_count);
                 }
             });
@@ -78,7 +78,7 @@ if (pulls_url_matches) {
         }
         else {
             unmarkPullRequestReady(pullRequestBlock);
-            if (counterElement.innerHTML != ', <strong>' + approved_files_count + '</strong> of ' + changed_files_count + ' files passed review') {
+            if (counterElement.innerHTML !== ', <strong>' + approved_files_count + '</strong> of ' + changed_files_count + ' files passed review') {
                 counterElement.innerHTML = ', <strong>' + approved_files_count + '</strong> of ' + changed_files_count + ' files passed review';
             }
         }
@@ -96,6 +96,7 @@ if (pulls_url_matches) {
 
     function createChangedFilesCounter(pullRequestHeader) {
         var counter = document.createElement('span');
+
         counter.innerHTML = ', loading reviews data...';
         counter.className = 'js-changed-files-counter';
         counter.style.fontWeight = 'normal';

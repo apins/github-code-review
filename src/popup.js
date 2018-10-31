@@ -43,7 +43,7 @@ $(document).ready(function () {
                 if (config[repository]) {
                     delete config[repository][pull_request_id];
 
-                    if (Object.keys(config[repository]).length == 0) {
+                    if (Object.keys(config[repository]).length === 0) {
                         delete config[repository];
                     }
                 }
@@ -130,17 +130,17 @@ $(document).ready(function () {
                                     current_step_percentage += progress_bar_step;
                                     requests_counter--;
 
-                                    if (response.data.state && response.data.state != 'open') {
+                                    if (response.data.state && response.data.state !== 'open') {
                                         delete config[repository][pull_request_id];
 
-                                        if (Object.keys(config[repository]).length == 0) {
+                                        if (Object.keys(config[repository]).length === 0) {
                                             delete config[repository];
                                         }
                                     }
 
                                     progressbar.css({width: current_step_percentage + '%'});
 
-                                    if (requests_counter == 0) {
+                                    if (requests_counter === 0) {
                                         // Mark completed and hide progressbar
                                         progressbar.css({width: '100%'});
                                         progressbar_container.fadeOut(1000, function () {
@@ -158,7 +158,7 @@ $(document).ready(function () {
                     });
                 });
 
-                if (requests_counter == 0) {
+                if (requests_counter === 0) {
                     // Mark completed and hide progressbar
                     progressbar.css({width: '100%'});
                     progressbar_container.fadeOut(1000, function () {
@@ -185,8 +185,8 @@ $(document).ready(function () {
 
     function refreshTextarea(config) {
         if (
-            document.querySelector('#config_container').value != JSON.stringify(config)
-            && document.querySelector('#config_container') != document.activeElement
+            document.querySelector('#config_container').value !== JSON.stringify(config)
+            && document.querySelector('#config_container') !== document.activeElement
         ) {
             document.querySelector('#config_container').value = JSON.stringify(config);
         }

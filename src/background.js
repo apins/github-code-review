@@ -81,10 +81,10 @@ chrome.storage.sync.get(null, function (settings) {
 
                 config[message.repository][message.pull_request_id] = message.config;
 
-                if (Object.keys(config[message.repository][message.pull_request_id]).length == 0) {
+                if (Object.keys(config[message.repository][message.pull_request_id]).length === 0) {
                     delete config[message.repository][message.pull_request_id];
                 }
-                if (Object.keys(config[message.repository]).length == 0) {
+                if (Object.keys(config[message.repository]).length === 0) {
                     delete config[message.repository];
                 }
 
@@ -124,6 +124,7 @@ chrome.storage.sync.get(null, function (settings) {
                     var request_url = 'https://api.github.com/repos/' + message.repository + '/pulls/' + message.pull_request_id;
 
                     console.debug('API Request [' + random_request_id + '] ', request_url);
+
                     $.ajax({
                         url: request_url,
                         data: {access_token: access_token_for_request},
@@ -131,9 +132,10 @@ chrome.storage.sync.get(null, function (settings) {
                         async: false,
                         headers: headers,
                         success: function (xhr_response_data, text_status, xhr) {
-                            if (xhr.status == 304) {
+                            if (xhr.status === 304) {
                                 console.debug('API Response [' + random_request_id + '] not modified');
                                 sendResponse({data: {changed_files_count: cached_api_responses.pull_requests[request_key].response.changed_files}});
+
                                 return;
                             }
 
@@ -150,6 +152,7 @@ chrome.storage.sync.get(null, function (settings) {
                         },
                         error: function (xhr, text_status, text_error) {
                             console.debug('API Response FAILED [' + random_request_id + '] (status: ' + text_status + ') ' + text_error, xhr);
+
                             sendResponse({data: {changed_files_count: undefined}});
                         }
                     });
@@ -166,6 +169,7 @@ chrome.storage.sync.get(null, function (settings) {
                         if (moment(cached_api_responses.pull_requests[request_key].timestamp) >= moment().subtract(ttl_pull_request, 'seconds')) {
                             console.log('Cached response used for pull request info (repository: ' + message.repository + ', pull request: ' + message.pull_request_id + ')');
                             sendResponse({data: {state: cached_api_responses.pull_requests[request_key].response.state}});
+
                             return;
                         }
 
