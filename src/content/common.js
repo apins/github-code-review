@@ -30,7 +30,7 @@ function getPullRequestConfig(repository, pull_request_id, callback) {
 
 function getPullRequestChangedFilesCount(repository, pull_request_id, callback) {
     sendMessage('getChangedFilesCount', {repository: repository, pull_request_id: pull_request_id}, function (response) {
-        if (response && !!response.data && typeof callback == 'function') {
+        if (response && !!response.data && typeof callback === 'function') {
             callback(response.data.changed_files_count);
         }
     });
@@ -86,9 +86,9 @@ function refreshStampsStorage(stamps_storage, repository, pull_request_id, callb
 
     getPullRequestFiles(repository, pull_request_id, function (files_list) {
         files = files_list;
-        if (typeof files != 'undefined' && typeof comments != 'undefined') {
+        if (typeof files !== 'undefined' && typeof comments !== 'undefined') {
             setPullRequestFileStateStamps();
-            if (typeof callback == 'function') {
+            if (typeof callback === 'function') {
                 callback();
             }
         }
@@ -96,9 +96,11 @@ function refreshStampsStorage(stamps_storage, repository, pull_request_id, callb
 
     getPullRequestComments(repository, pull_request_id, function (comments_list) {
         comments = comments_list;
-        if (typeof files != 'undefined' && typeof comments != 'undefined') {
+
+        if (typeof files !== 'undefined' && typeof comments !== 'undefined') {
             setPullRequestFileStateStamps();
-            if (typeof callback == 'function') {
+
+            if (typeof callback === 'function') {
                 callback();
             }
         }
@@ -116,7 +118,7 @@ function getPullRequestFiles(repository, pull_request_id, callback) {
             function (response) {
                 if (response.data.files) {
                     files_list = files_list.concat(response.data.files);
-                    var surely_the_last_page = response.data.files.length % 10 != 0;
+                    var surely_the_last_page = response.data.files.length % 10 !== 0;
 
                     if (response.data.files.length > 0 && !surely_the_last_page) {
                         getFilesForPage(current_page + 1);
@@ -146,7 +148,7 @@ function getPullRequestComments(repository, pull_request_id, callback) {
             function (response) {
                 if (response.data.comments) {
                     comments_list = comments_list.concat(response.data.comments);
-                    var surely_the_last_page = response.data.comments.length % 10 != 0;
+                    var surely_the_last_page = response.data.comments.length % 10 !== 0;
 
                     if (response.data.comments.length > 0 && !surely_the_last_page) {
                         getCommentsForPage(current_page + 1);
@@ -174,7 +176,7 @@ function isFileApproved(config, pull_request_file_state_stamps, repository_autho
     return !!config[repository_author_and_name]
         && !!config[repository_author_and_name][pull_request_id]
         && !!config[repository_author_and_name][pull_request_id][file_path]
-        && config[repository_author_and_name][pull_request_id][file_path].hash == pull_request_file_state_stamps[file_path].hash
+        && config[repository_author_and_name][pull_request_id][file_path].hash === pull_request_file_state_stamps[file_path].hash
 
         // Do not forget to suffer
         && !(moment(config[repository_author_and_name][pull_request_id][file_path].last_comment_date) > moment(pull_request_file_state_stamps[file_path].last_comment_date))
@@ -213,8 +215,9 @@ function syncSendMessage(command, data, closure) {
         if (!reload_confirmation_asked) {
             reload_confirmation_asked = true;
             cleanUpExtensionDOMElements();
+
             if (confirm('Extension "' + extension_name + ' v' + extension_version + '" was unloaded.\nTo proceed using it you need to refresh the page.\n\nRefresh now?')) {
-                document.location.href = document.location.href;
+                document.location.reload();
             }
         }
     }
@@ -237,10 +240,11 @@ function cleanUpExtensionDOMElements() {
         /**
          * TAB: Files
          */
-        Array.prototype.forEach.call(document.querySelectorAll('.js-approve-file, .js-disapprove-file'), function (item) {
+        document.querySelectorAll('.js-approve-file, .js-disapprove-file').forEach(function (item) {
             item.remove();
         });
-        Array.prototype.forEach.call(document.querySelectorAll('.js-file'), function (fileBlock) {
+
+        document.querySelectorAll('.js-file').forEach(function (fileBlock) {
             showFileContents(fileBlock);
         });
     }
