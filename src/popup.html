@@ -56,6 +56,12 @@
         a.css-collapse-expand-list.collapsed .glyphicon-expand {
             display: inherit;
         }
+        #plugin-version {
+            float: right;
+        }
+        #plugin-version:before {
+            content: 'version ';
+        }
     </style>
 
     <link rel="stylesheet" href="lib/bootstrap-3.3.7/css/bootstrap.min.css">
@@ -64,8 +70,11 @@
 
 <div id="wrapper" class="container">
     <div class="row">
-        <div class="col-md-12">
+        <div class="col-md-6">
+            <p>GitHub CodeReview <span id="plugin-version"></span></p>
+        </div>
 
+        <div class="col-md-12">
             <div class="panel-group">
                 <div class="panel panel-info">
                     <div class="panel-heading" role="tab" id="headingToken">

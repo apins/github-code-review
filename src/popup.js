@@ -1,5 +1,9 @@
+const extension_version = chrome.runtime.getManifest().version;
+
 $(document).ready(function () {
     var pull_requests_names = {};
+
+    $('#plugin-version').text(extension_version);
 
     document.querySelector('.js-apply-config').addEventListener('click', function () {
         var value = document.querySelector('#config_container').value;
